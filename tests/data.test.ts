@@ -61,7 +61,7 @@ test('employee tasks are limited by both store and assignee', () => {
 test('the suggested employee question retrieves the instruction', () => {
   const answer = assistantAnswer('Как оформить списание?', 'employee', ['s1'], 'month', initialRequests);
   assert.ok(answer.text.includes('Проверьте фактическое количество'));
-  assert.ok(answer.source.includes('Демо-регламент'));
+  assert.ok(answer.source.includes('Шаблон инструкции'));
 });
 
 test('assistant revenue is exactly the dashboard result for the scoped period', () => {

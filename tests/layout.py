@@ -18,6 +18,9 @@ with sync_playwright() as p:
             page.goto(URL + '/#/' + route, wait_until='networkidle')
             page.evaluate('document.fonts.ready')
             assert not page.evaluate('document.documentElement.scrollWidth > innerWidth'), f'{route} overflows at {width}'
+            assert page.locator('body').evaluate('el => getComputedStyle(document.documentElement).backgroundColor') == 'rgb(255, 255, 255)'
+            expect(page.locator('.demo-ribbon, .quick-start, .main-footer, .overview-side')).to_have_count(0)
+            assert not re.search(r'демо|демонстра|вымышлен', page.locator('main').inner_text(), re.I), f'Repeated demo copy on {route}'
             assert page.evaluate('document.fonts.check(\'500 14px "Montserrat Variable"\', "Финансы 123")'), 'Montserrat not loaded'
             other_fonts = page.locator('h1, h2, button, input, select, textarea, .recharts-text').evaluate_all('''els => els.filter(el => el.getBoundingClientRect().width > 0 && !getComputedStyle(el).fontFamily.includes('Montserrat')).map(el => el.tagName + ': ' + getComputedStyle(el).fontFamily)''')
             assert not other_fonts, (route, width, other_fonts)

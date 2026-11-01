@@ -8,10 +8,8 @@ import {
   Flower2,
   Link2,
   LoaderCircle,
-  Play,
   RefreshCw,
   Save,
-  ShieldCheck,
   Sparkles,
   Store,
   Unplug,
@@ -52,7 +50,6 @@ interface Props {
   onSave: (value: Preferences) => void;
   onConnections: (value: DemoConnection[]) => void;
   onRole: (role: Role) => void;
-  onAssistant: () => void;
   onReset: () => void;
   notify: (message: string) => void;
 }
@@ -74,7 +71,6 @@ export default function SettingsPage({
   onSave,
   onConnections,
   onRole,
-  onAssistant,
   onReset,
   notify,
 }: Props) {
@@ -162,7 +158,7 @@ export default function SettingsPage({
           entry,
         ]);
         setStep(3);
-        notify(`Демо-источник «${selected.name}» синхронизирован`);
+        notify(`Источник «${selected.name}» проверен`);
       }, 1200),
     );
   };
@@ -186,14 +182,6 @@ export default function SettingsPage({
       <div className="page-heading settings-heading">
         <div>
           <h1>Настройки пространства</h1>
-          <p>Настройте ROMEO под вашу команду и рабочие процессы.</p>
-        </div>
-        <div className="settings-heading-actions">
-          <Badge color="purple">Демо-режим</Badge>
-          <button className="secondary-button" onClick={onAssistant}>
-            <Play size={13} />
-            Тестовый диалог
-          </button>
         </div>
       </div>
       <div
@@ -285,25 +273,6 @@ export default function SettingsPage({
                 <span />
               </button>
             </div>
-            <div className="setting-switch-row">
-              <div>
-                <strong>Быстрый старт</strong>
-                <p>Показывать сценарий знакомства в боковом меню</p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={draft.quickStart}
-                aria-label="Быстрый старт"
-                disabled={!editable}
-                className={"switch-control " + (draft.quickStart ? "on" : "")}
-                onClick={() =>
-                  setDraft({ ...draft, quickStart: !draft.quickStart })
-                }
-              >
-                <span />
-              </button>
-            </div>
             <label className="setting-select-row">
               <strong>Часовой пояс</strong>
               <select
@@ -318,10 +287,7 @@ export default function SettingsPage({
                 <option value="Asia/Qyzylorda">Кызылорда · GMT+5</option>
                 <option value="UTC">UTC · GMT+0</option>
               </select>
-              <small>
-                Используется для времени синхронизации. Даты демо-отчётов
-                фиксированы.
-              </small>
+              <small>Время обновления источников.</small>
             </label>
             {error && (
               <p className="form-error" role="alert">
@@ -332,8 +298,8 @@ export default function SettingsPage({
               <div className="settings-save-row">
                 <span>
                   {dirty
-                    ? "Черновик сохранён в этой вкладке. Примените изменения кнопкой справа."
-                    : "Настройки актуальны"}
+                    ? "Есть несохранённые изменения"
+                    : "Все изменения сохранены"}
                 </span>
                 <button className="primary-button" type="submit">
                   {saved ? <Check size={15} /> : <Save size={15} />}{" "}
@@ -349,12 +315,12 @@ export default function SettingsPage({
           </form>
           <section className="demo-management">
             <div>
-              <h2>Управление демонстрацией</h2>
+              <h2>Исходные данные</h2>
               <p>Заявки, задачи и настройки сохраняются в этом браузере.</p>
             </div>
             <button className="secondary-button danger-text" onClick={onReset}>
               <RefreshCw size={14} />
-              Сбросить демо
+              Сбросить изменения
             </button>
           </section>
         </div>
@@ -420,11 +386,6 @@ export default function SettingsPage({
               </section>
             ))}
           </div>
-          <div className="modal-note">
-            <ShieldCheck size={16} />
-            Демо-переключатель показывает ролевые сценарии. Реальная авторизация
-            и серверная проверка прав будут подключены при внедрении.
-          </div>
         </div>
       )}
 
@@ -437,9 +398,7 @@ export default function SettingsPage({
           <div className="integration-settings-heading">
             <div>
               <h2>Источники данных</h2>
-              <p className="settings-section-intro">
-                Подключите демо-источник, обновите его и проверьте результат.
-              </p>
+              <p className="settings-section-intro">МойСклад</p>
             </div>
             <Badge color="purple">
               {
@@ -453,9 +412,8 @@ export default function SettingsPage({
           <div className="notice">
             <Sparkles size={16} />
             <span>
-              Это симуляция подключения МойСклад. Ключи не требуются, внешние
-              запросы не выполняются. Финансовые показатели демо доступны
-              независимо от статуса источника.
+              МойСклад не подключён. Проверка ниже выполняется на тестовых
+              данных.
             </span>
           </div>
           <section className="card">
@@ -473,11 +431,11 @@ export default function SettingsPage({
                         {store.city} ·{" "}
                         {connection
                           ? `Обновлено ${time(connection.syncedAt)}`
-                          : "Демо-источник МойСклад"}
+                          : "МойСклад"}
                       </small>
                     </div>
                     <Badge color={connection ? "green" : "neutral"}>
-                      {connection ? "Подключено · демо" : "Не подключён"}
+                      {connection ? "Проверено" : "Не подключён"}
                     </Badge>
                     {editable && (
                       <div className="integration-actions">
@@ -547,16 +505,13 @@ export default function SettingsPage({
       )}
       {selected && (
         <Modal
-          title={
-            (connected ? "Обновление источника" : "Подключение источника") +
-            " · демо"
-          }
+          title={connected ? "Повторная проверка" : "Проверка источника"}
           subtitle={`${selected.name} · ${selected.city}`}
           onClose={closeConnection}
         >
           <div className="connection-steps">
             {[
-              "Проверка демо-доступа",
+              "Проверка доступа",
               "Сверка продаж и денежных операций",
               "Данные готовы к просмотру",
             ].map((label, index) => (
@@ -576,7 +531,7 @@ export default function SettingsPage({
             <div className="sync-result">
               <CheckCheck size={23} />
               <div>
-                <strong>Синхронизация завершена</strong>
+                <strong>Проверка завершена</strong>
                 <p>
                   {selectedDays([selected.id], "quarter").length} дней продаж ·{" "}
                   {selectedOperations([selected.id], "quarter").length} денежных
@@ -593,8 +548,7 @@ export default function SettingsPage({
             </div>
           )}
           <div className="modal-note">
-            Используется вымышленный набор за август–октябрь 2026. Подключение к
-            реальному МойСклад не выполняется.
+            Проверка сценария без обращения к МойСклад.
           </div>
           <button
             className="primary-button full-width"
@@ -609,14 +563,12 @@ export default function SettingsPage({
             ) : step > 0 ? (
               <>
                 <LoaderCircle size={16} className="spin" />
-                Синхронизация…
+                Проверяем…
               </>
             ) : (
               <>
                 <Link2 size={16} />
-                {connected
-                  ? "Обновить демо-данные"
-                  : "Запустить демо-подключение"}
+                {connected ? "Повторить проверку" : "Запустить проверку"}
               </>
             )}
           </button>
@@ -624,8 +576,8 @@ export default function SettingsPage({
       )}
       {disconnecting && (
         <Modal
-          title="Отключить демо-источник?"
-          subtitle="Статус подключения будет сброшен. Примеры финансовых данных останутся доступны для демонстрации."
+          title="Сбросить проверку источника?"
+          subtitle="Статус проверки будет сброшен. Данные сохранятся."
           onClose={() => setDisconnecting(null)}
         >
           <div className="modal-actions">
@@ -642,7 +594,7 @@ export default function SettingsPage({
                   connections.filter((c) => c.storeId !== disconnecting),
                 );
                 setDisconnecting(null);
-                notify("Демо-источник отключён");
+                notify("Проверка источника сброшена");
               }}
             >
               Отключить источник

@@ -340,8 +340,8 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
         >
           <defs>
             <linearGradient id="revenue-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#86ae7b" stopOpacity={0.18} />
-              <stop offset="100%" stopColor="#86ae7b" stopOpacity={0.01} />
+              <stop offset="0%" stopColor="#d4d4d8" stopOpacity={0.18} />
+              <stop offset="100%" stopColor="#d4d4d8" stopOpacity={0.01} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -355,7 +355,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             minTickGap={45}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#6b746d", fontSize: 12 }}
+            tick={{ fill: "#71717a", fontSize: 12 }}
             dy={10}
           />
           <YAxis
@@ -366,7 +366,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             }
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#6b746d", fontSize: 12 }}
+            tick={{ fill: "#71717a", fontSize: 12 }}
           />
           <Tooltip
             formatter={(value, name) => [
@@ -375,7 +375,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             ]}
             labelFormatter={(label) => shortDate(String(label))}
             contentStyle={{
-              border: "1px solid #e2e7e2",
+              border: "1px solid #e4e4e7",
               borderRadius: 12,
               boxShadow: "0 8px 24px #22234410",
               fontSize: 13,
@@ -385,7 +385,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             isAnimationActive={false}
             type="monotone"
             dataKey="revenue"
-            stroke="#28775c"
+            stroke="#52525b"
             strokeWidth={2.5}
             fill="url(#revenue-fill)"
             activeDot={{ r: 5, stroke: "white", strokeWidth: 3 }}
@@ -395,7 +395,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             isAnimationActive={false}
             type="monotone"
             dataKey="profit"
-            stroke="#acb8ad"
+            stroke="#a1a1aa"
             strokeWidth={2}
             strokeDasharray="5 4"
             fill="transparent"

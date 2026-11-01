@@ -21,7 +21,6 @@ import {
   ClipboardList,
   Download,
   FileText,
-  FlaskConical,
   Flower2,
   LayoutDashboard,
   Link2,
@@ -264,7 +263,7 @@ export default function App() {
     setSearch("");
     setNotificationsOpen(false);
     clearChat();
-    setToast(`Вы вошли в демо как ${roles[next].name.toLowerCase()}`);
+    setToast(`Роль: ${roles[next].name.toLowerCase()}`);
   };
 
   const resetFilters = () => {
@@ -641,9 +640,7 @@ export default function App() {
               {visibleStores(role).length === 1 ? "Ваш магазин" : "8 магазинов"}
             </small>
           </span>
-          <Badge color="purple">DEMO</Badge>
         </div>
-        <div className="nav-caption">РАБОЧЕЕ ПРОСТРАНСТВО</div>
         <nav aria-label="Главное меню">
           {navigation
             .filter((n) => roles[role].pages.includes(n.id))
@@ -661,24 +658,10 @@ export default function App() {
                     {scopeTasks.filter((t) => t.status !== "done").length}
                   </span>
                 )}
-                {n.id === "assistant" && <span className="ai-tag">AI</span>}
               </button>
             ))}
         </nav>
         <div className="sidebar-bottom">
-          {preferences.quickStart && (
-            <button className="quick-start" onClick={() => setModal("help")}>
-              <span className="quick-start-icon">
-                <BookOpen size={21} />
-              </span>
-              <span>
-                <strong>Быстрый старт</strong>
-                <small>Сценарий демо</small>
-              </span>
-              <ChevronRight size={15} />
-            </button>
-          )}
-          <div className="nav-caption bottom-caption">ПРОЧЕЕ</div>
           <button
             className={`nav-item ${activePage === "settings" ? "active" : ""}`}
             aria-current={activePage === "settings" ? "page" : undefined}
@@ -692,9 +675,6 @@ export default function App() {
             <span>Помощь</span>
             <ArrowUpRight size={14} />
           </button>
-          <div className="sidebar-footnote">
-            ROMEO OS <span>v0.1 · Demo</span>
-          </div>
         </div>
       </aside>
       <div className="main-shell">
@@ -707,7 +687,6 @@ export default function App() {
             >
               <Menu size={20} />
             </button>
-            <span className="breadcrumb-root">{preferences.companyName}</span>
           </div>
           <div className="header-actions">
             <div className="global-search">
@@ -931,6 +910,8 @@ export default function App() {
             <div className="header-divider" />
             <button
               className="profile-button"
+              aria-label="Сменить роль"
+              title="Сменить роль"
               onClick={() => setModal("roles")}
             >
               <span className="avatar">{roles[role].initials}</span>
@@ -990,19 +971,6 @@ export default function App() {
             ))}
         </nav>
         <main>
-          <div className="demo-ribbon">
-            <span>
-              <FlaskConical size={14} />
-              <strong>Демо-пространство</strong>
-              <span className="ribbon-detail">
-                Вымышленные данные · без подключения к учётным системам
-              </span>
-            </span>
-            <button onClick={() => setModal("roles")}>
-              Сменить роль <ArrowRight size={13} />
-            </button>
-          </div>
-
           {activePage === "overview" && (
             <div className="overview-workspace">
               <div className="page-heading">
@@ -1010,7 +978,6 @@ export default function App() {
                   <h1>
                     {role === "manager" ? "Ваш магазин в цифрах" : "Обзор сети"}
                   </h1>
-                  <p>Выручка, деньги и решения, которые ждут вас.</p>
                 </div>
                 <button
                   className="secondary-button"
@@ -1020,9 +987,6 @@ export default function App() {
                 </button>
               </div>
               <div className="overview-filterbar">
-                <span className="snapshot-label">
-                  <span className="status-dot" /> Данные на 31 октября 2026
-                </span>
                 <Filters
                   role={role}
                   storeId={storeId}
@@ -1180,65 +1144,6 @@ export default function App() {
                     Прибыль до налогов и общесетевых расходов.
                   </div>
                 </section>
-                <div className="overview-side">
-                  <section className="card team-brief">
-                    <div className="card-heading">
-                      <h2>Работа команды</h2>
-                      <ClipboardList size={18} />
-                    </div>
-                    <div className="team-progress">
-                      <strong>
-                        {scopeTasks.filter((t) => t.status === "done").length}
-                        <span> / {scopeTasks.length}</span>
-                      </strong>
-                      <span>задач завершено</span>
-                    </div>
-                    <div className="progress-track">
-                      <i
-                        style={{
-                          width: `${scopeTasks.length ? (scopeTasks.filter((t) => t.status === "done").length / scopeTasks.length) * 100 : 0}%`,
-                        }}
-                      />
-                    </div>
-                    <button
-                      className="inbox-footer"
-                      onClick={() => {
-                        setTaskFilter("priority");
-                        setTaskQuery("");
-                        navigate("tasks");
-                      }}
-                    >
-                      <span>
-                        Приоритетные задачи{" "}
-                        <b>
-                          {
-                            scopeTasks.filter(
-                              (t) =>
-                                t.priority === "high" && t.status !== "done",
-                            ).length
-                          }
-                        </b>
-                      </span>
-                      <ArrowRight size={16} />
-                    </button>
-                  </section>
-                  <button
-                    className="assistant-shortcut"
-                    onClick={() => {
-                      navigate("assistant");
-                      ask("Сравни магазины по прибыли");
-                    }}
-                  >
-                    <span className="ai-icon">
-                      <Sparkles size={20} />
-                    </span>
-                    <span>
-                      <strong>Разобраться в цифрах</strong>
-                      <small>Спросить помощника о результатах</small>
-                    </span>
-                    <ArrowUpRight size={18} />
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -1248,7 +1153,6 @@ export default function App() {
               <div className="page-heading">
                 <div>
                   <h1>Финансы</h1>
-                  <p>Результат бизнеса, движение денег и контроль расходов.</p>
                 </div>
                 <button
                   className="primary-button"
@@ -1295,9 +1199,8 @@ export default function App() {
                   <div className="notice">
                     <CircleAlert size={17} />
                     <span>
-                      <strong>Предварительный P&L.</strong> В демо не
-                      учитываются налоги и общесетевые расходы. Начисленные
-                      расходы могут отличаться от фактических выплат.
+                      Без налогов и общесетевых расходов. Начисления могут
+                      отличаться от выплат.
                     </span>
                   </div>
                   <div className="metrics-grid three">
@@ -1393,8 +1296,7 @@ export default function App() {
                         </div>
                       ))}
                       <div className="table-footnote">
-                        Источник: согласованный демонстрационный набор продаж и
-                        начислений. Расчёт за выбранный период.
+                        Продажи и начисления за выбранный период.
                       </div>
                     </section>
                     <div className="finance-side">
@@ -1759,7 +1661,6 @@ export default function App() {
               <div className="page-heading">
                 <div>
                   <h1>Магазины</h1>
-                  <p>Сравнивайте результаты и находите точки роста.</p>
                 </div>
                 <Badge color="green">
                   {visibleStores(role).length}{" "}
@@ -1769,9 +1670,6 @@ export default function App() {
                 </Badge>
               </div>
               <div className="toolbar">
-                <span className="subtle-text">
-                  Названия и адреса магазинов демонстрационные
-                </span>
                 <Filters
                   role={role}
                   storeId={storeId}
@@ -1803,7 +1701,6 @@ export default function App() {
                   <h1>
                     {role === "employee" ? "Мои задачи" : "Задачи команды"}
                   </h1>
-                  <p>Ответственные, сроки и понятный статус каждой задачи.</p>
                 </div>
                 {role !== "employee" && (
                   <button
@@ -1983,7 +1880,6 @@ export default function App() {
                     Спросите ROMEO{" "}
                     <Sparkles className="inline-spark" size={23} />
                   </h1>
-                  <p>Ответы по показателям компании и рабочим инструкциям.</p>
                 </div>
                 <button className="secondary-button" onClick={clearChat}>
                   <Plus size={16} />
@@ -2007,31 +1903,10 @@ export default function App() {
                 </div>
               )}
               <section className="card assistant-panel">
-                <div className="assistant-panel-header">
-                  <span className="ai-icon">
-                    <Sparkles size={18} />
-                  </span>
-                  <div>
-                    <strong>ROMEO Assistant</strong>
-                    <small>
-                      Расчёты по данным вашего рабочего пространства
-                    </small>
-                  </div>
-                  <Badge color="purple">Демо</Badge>
-                </div>
                 <div className="chat-body">
                   {!messages.length && !thinking ? (
                     <div className="assistant-welcome">
-                      <div className="assistant-orb">
-                        <Flower2 size={39} strokeWidth={1.5} />
-                        <span>✦</span>
-                      </div>
-                      <h2>Давайте разберёмся в цифрах</h2>
-                      <p>
-                        {role === "employee"
-                          ? "Я помогу найти рабочую инструкцию. Финансовые данные ограничены вашей ролью."
-                          : "Выберите вопрос или напишите свой. Я покажу расчёт и укажу источник данных."}
-                      </p>
+                      <h2>Что хотите узнать?</h2>
                       <div className="suggestion-grid">
                         {(role === "employee"
                           ? [
@@ -2122,11 +1997,6 @@ export default function App() {
                     <Send size={18} />
                   </button>
                 </form>
-                <div className="chat-disclaimer">
-                  <ShieldCheck size={12} />
-                  Демо-помощник использует готовые сценарии и реальные расчёты
-                  по вымышленным данным. Внешняя ИИ-модель не подключена.
-                </div>
               </section>
             </>
           )}
@@ -2143,28 +2013,15 @@ export default function App() {
               }}
               onConnections={setConnections}
               onRole={chooseRole}
-              onAssistant={() => navigate("assistant")}
               onReset={() => setModal("reset")}
               notify={setToast}
             />
           )}
-
-          <footer className="main-footer">
-            <span>
-              <Flower2 size={13} />
-              ROMEO OS · управление компанией
-            </span>
-            <span>Демо · 2026</span>
-          </footer>
         </main>
       </div>
 
       {modal === "roles" && (
-        <Modal
-          title="Посмотрите глазами команды"
-          subtitle="Выберите роль для демонстрации разных уровней доступа."
-          onClose={closeModal}
-        >
+        <Modal title="Сменить роль" subtitle="" onClose={closeModal}>
           <div className="role-options">
             {(Object.keys(roles) as Role[]).map((r) => (
               <button
@@ -2184,10 +2041,6 @@ export default function App() {
                 )}
               </button>
             ))}
-          </div>
-          <div className="modal-note">
-            <FlaskConical size={16} />
-            Это демонстрация ролей, без настоящего входа в аккаунт.
           </div>
         </Modal>
       )}
@@ -2233,8 +2086,7 @@ export default function App() {
           </div>
           <div className="modal-note">
             <CircleAlert size={16} />
-            Одобрение заявки не списывает деньги. Проведение платежей в демо не
-            выполняется.
+            Одобрение не проводит платёж.
           </div>
           {selectedRequest.status === "pending" && canApprove(role) && (
             <div className="modal-actions">
@@ -2262,9 +2114,7 @@ export default function App() {
       {selectedStore && (
         <Modal
           title={selectedStore.name}
-          subtitle={
-            selectedStore.city + " · " + selectedStore.address + " · демо"
-          }
+          subtitle={selectedStore.city + " · " + selectedStore.address}
           onClose={closeModal}
           wide
         >
@@ -2384,8 +2234,8 @@ export default function App() {
       )}
       {modal === "reset" && (
         <Modal
-          title="Начать демонстрацию заново?"
-          subtitle="Созданные заявки, задачи, настройки и демо-подключения будут сброшены. Исходные примеры восстановятся."
+          title="Сбросить изменения?"
+          subtitle="Созданные заявки, задачи и настройки будут удалены. Исходные данные восстановятся."
           onClose={closeModal}
         >
           <div className="modal-actions">
@@ -2410,20 +2260,16 @@ export default function App() {
                 resetFilters();
                 clearChat();
                 setModal(null);
-                setToast("Демонстрация восстановлена");
+                setToast("Исходные данные восстановлены");
               }}
             >
-              Восстановить демо
+              Восстановить
             </button>
           </div>
         </Modal>
       )}
       {modal === "help" && (
-        <Modal
-          title="Добро пожаловать в ROMEO OS"
-          subtitle="Рабочее демо единой системы управления цветочной сетью."
-          onClose={closeModal}
-        >
+        <Modal title="Как работать в ROMEO" subtitle="" onClose={closeModal}>
           <div className="help-steps">
             <div>
               <span>01</span>
@@ -2455,12 +2301,13 @@ export default function App() {
             </div>
           </div>
           <div className="modal-note">
-            Все компании, операции, имена и адреса в демо вымышлены. Для
-            внедрения потребуются серверная авторизация, подключение учётных
-            систем и согласование правил расчёта.
+            Данные вымышлены и сохраняются в этом браузере. МойСклад, банки и
+            внешняя ИИ-модель не подключены. Помощник использует готовые расчёты
+            и шаблоны инструкций. Переключение ролей показывает права доступа,
+            без авторизации.
           </div>
           <button className="primary-button full-width" onClick={closeModal}>
-            Начать знакомство <ArrowRight size={16} />
+            Понятно <ArrowRight size={16} />
           </button>
         </Modal>
       )}
@@ -2520,15 +2367,14 @@ function OperationModal({
           <dt>Статус проверки</dt>
           <dd>
             <Badge color={o.needsReview ? "orange" : "green"}>
-              {o.needsReview ? "Уточнить основание" : "Сопоставлено в демо"}
+              {o.needsReview ? "Уточнить основание" : "Сопоставлено"}
             </Badge>
           </dd>
         </div>
       </dl>
       <div className="modal-note">
         <FileText size={16} />
-        Демонстрационная сводная операция за день. Реальные банковские и учётные
-        документы не подключены.
+        Сводная операция за день.
       </div>
       <button
         className="secondary-button full-width"
@@ -2666,8 +2512,7 @@ function RequestForm({
         />
       </label>
       <div className="modal-note">
-        Заявку рассмотрит собственник или финансист. В демо деньги не
-        списываются.
+        Заявку рассмотрит собственник или финансист.
       </div>
       {error && (
         <p className="form-error" role="alert">

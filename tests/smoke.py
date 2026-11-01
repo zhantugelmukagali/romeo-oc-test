@@ -39,7 +39,7 @@ with sync_playwright() as p:
     page.get_by_label('Поиск операций').fill('Аренда')
     expect(page.locator('.operations-table tbody tr')).to_have_count(8)
     page.locator('.operation-name').first.click()
-    expect(page.get_by_role('dialog')).to_contain_text('Банковская выписка · демо')
+    expect(page.get_by_role('dialog')).to_contain_text('Банковская выписка')
     page.get_by_role('button', name='Закрыть окно').click()
     page.get_by_label('Поиск операций').fill('нет-такой-операции')
     expect(page.get_by_text('Операции не найдены', exact=True)).to_be_visible()
@@ -126,8 +126,8 @@ with sync_playwright() as p:
     expect(page.locator('.notification-popover')).to_contain_text('Сервис холодильной камеры')
     page.keyboard.press('Escape')
     page.get_by_role('button', name='Настройки', exact=True).click()
-    page.get_by_role('button', name='Сбросить демо', exact=True).click()
-    page.get_by_role('button', name='Восстановить демо', exact=True).click()
+    page.get_by_role('button', name='Сбросить изменения', exact=True).click()
+    page.get_by_role('button', name='Восстановить', exact=True).click()
     assert len(page.evaluate('JSON.parse(localStorage.getItem("romeo-demo-v1-requests"))')) == 4
     print('PASS: financier role, global search, notifications and reset')
 
