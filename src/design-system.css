@@ -10,6 +10,9 @@
   --accent: #27272a;
   --accent-dark: #18181b;
   --accent-light: #efefef;
+  --action: #6155c6;
+  --action-hover: #5145b3;
+  --action-pressed: #443995;
   --line: #e7e7eb;
   --green: #545454;
   --orange: #926525;
@@ -423,12 +426,23 @@ kbd {
   transition: background 0.15s;
 }
 .primary-button {
-  background: var(--accent);
+  background: var(--action);
   color: white;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--action);
 }
-.primary-button:hover:not(:disabled) {
-  background: var(--accent-dark);
+.primary-button:hover:not(:disabled),
+.send-button:hover:not(:disabled) {
+  background: var(--action-hover);
+  border-color: var(--action-hover);
+}
+.primary-button:active:not(:disabled),
+.send-button:active:not(:disabled) {
+  background: var(--action-pressed);
+  border-color: var(--action-pressed);
+}
+.primary-button:focus-visible,
+.send-button:focus-visible {
+  outline-color: var(--action);
 }
 .secondary-button {
   background: white;
@@ -1552,7 +1566,7 @@ tbody tr:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--accent);
+  background: var(--action);
   color: white;
   flex-shrink: 0;
 }
