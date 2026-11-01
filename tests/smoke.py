@@ -65,7 +65,7 @@ with sync_playwright() as p:
     expect(page.locator('.requests-table tbody tr').filter(has_text='Демо: проверка холодильника')).to_contain_text('Согласовано')
     print('PASS: request creation, approval and persistence after reload')
 
-    page.get_by_role('button', name=re.compile('^Задачи команды')).click()
+    page.get_by_role('button', name=re.compile('^Задачи')).click()
     page.get_by_role('button', name='Новая задача', exact=True).click()
     dialog = page.get_by_role('dialog')
     dialog.get_by_label('Название задачи').fill('Проверка демо-задачи')

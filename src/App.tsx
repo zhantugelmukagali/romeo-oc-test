@@ -19,7 +19,6 @@ import {
   ChevronRight,
   CircleHelp,
   ClipboardList,
-  Clock3,
   Download,
   FileText,
   FlaskConical,
@@ -131,7 +130,7 @@ const navigation = [
   { id: "overview" as Page, label: "Обзор сети", icon: LayoutDashboard },
   { id: "finance" as Page, label: "Финансы", icon: Wallet },
   { id: "stores" as Page, label: "Магазины", icon: StoreIcon },
-  { id: "tasks" as Page, label: "Задачи команды", icon: ClipboardList },
+  { id: "tasks" as Page, label: "Задачи", icon: ClipboardList },
   { id: "assistant" as Page, label: "ИИ-помощник", icon: Sparkles },
 ];
 const statusLabels: Record<ExpenseStatus, string> = {
@@ -224,7 +223,6 @@ export default function App() {
         .includes(operationQuery.toLowerCase()),
   );
   const activePage = roles[role].pages.includes(page) ? page : "tasks";
-  const currentNav = navigation.find((n) => n.id === activePage);
   const closeModal = useCallback(() => setModal(null), []);
   const navigate = (next: Page, patch: Partial<WorkspaceRoute> = {}) => {
     updateRoute({ ...patch, page: next });
@@ -639,7 +637,9 @@ export default function App() {
           </span>
           <span>
             <strong>{preferences.companyName}</strong>
-            <small>Пространство компании</small>
+            <small>
+              {visibleStores(role).length === 1 ? "Ваш магазин" : "8 магазинов"}
+            </small>
           </span>
           <Badge color="purple">DEMO</Badge>
         </div>
@@ -673,7 +673,7 @@ export default function App() {
               </span>
               <span>
                 <strong>Быстрый старт</strong>
-                <small>Как показать систему</small>
+                <small>Сценарий демо</small>
               </span>
               <ChevronRight size={15} />
             </button>
@@ -689,7 +689,7 @@ export default function App() {
           </button>
           <button className="nav-item" onClick={() => setModal("help")}>
             <CircleHelp size={18} />
-            <span>О демо и помощь</span>
+            <span>Помощь</span>
             <ArrowUpRight size={14} />
           </button>
           <div className="sidebar-footnote">
@@ -707,11 +707,7 @@ export default function App() {
             >
               <Menu size={20} />
             </button>
-            <span className="breadcrumb-root">Рабочее пространство</span>
-            <ChevronRight size={13} className="breadcrumb-arrow" />
-            <span className="breadcrumb-current">
-              {currentNav?.label ?? "Настройки"}
-            </span>
+            <span className="breadcrumb-root">{preferences.companyName}</span>
           </div>
           <div className="header-actions">
             <div className="global-search">
@@ -946,29 +942,24 @@ export default function App() {
             </button>
           </div>
         </header>
-        <div className="workspace-context">
-          <span>Romeo</span>
-          <ChevronRight size={13} />
-          <strong>{currentNav?.label ?? "Настройки"}</strong>
-          <span className="context-role">
-            <ShieldCheck size={13} />
-            {roles[role].name}
-          </span>
-          {storeId !== "all" && activePage !== "settings" && (
-            <span className="scope-chip">
-              <StoreIcon size={13} />
-              {stores.find((s) => s.id === storeId)?.name}
-              {visibleStores(role).length > 1 && (
-                <button
-                  aria-label="Вернуться ко всей сети"
-                  onClick={() => changeStore("all")}
-                >
-                  <X size={13} />
-                </button>
-              )}
+        {storeId !== "all" && activePage !== "settings" && (
+          <div className="workspace-context">
+            <StoreIcon size={15} />
+            <span>
+              Показаны данные магазина{" "}
+              <strong>{stores.find((s) => s.id === storeId)?.name}</strong>
             </span>
-          )}
-        </div>
+            {visibleStores(role).length > 1 && (
+              <button
+                className="text-button"
+                aria-label="Вернуться ко всей сети"
+                onClick={() => changeStore("all")}
+              >
+                Вся сеть <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
         <nav className="mobile-bottom-nav" aria-label="Мобильная навигация">
           {navigation
             .filter((n) => roles[role].pages.includes(n.id))
@@ -1002,9 +993,9 @@ export default function App() {
           <div className="demo-ribbon">
             <span>
               <FlaskConical size={14} />
-              <strong>Демонстрационная версия</strong>
+              <strong>Демо-пространство</strong>
               <span className="ribbon-detail">
-                Данные вымышлены · интеграции не подключены
+                Вымышленные данные · без подключения к учётным системам
               </span>
             </span>
             <button onClick={() => setModal("roles")}>
@@ -1013,36 +1004,25 @@ export default function App() {
           </div>
 
           {activePage === "overview" && (
-            <>
+            <div className="overview-workspace">
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">ВСЁ ВАЖНОЕ В ОДНОМ МЕСТЕ</div>
                   <h1>
-                    {role === "manager" ? "Ваш магазин в цифрах" : "Обзор сети"}{" "}
-                    <span className="title-dot" />
+                    {role === "manager" ? "Ваш магазин в цифрах" : "Обзор сети"}
                   </h1>
-                  <p>
-                    Понятная картина бизнеса. От общей выручки до каждой
-                    операции.
-                  </p>
+                  <p>Выручка, деньги и решения, которые ждут вас.</p>
                 </div>
-                <div className="snapshot-label">
-                  <span className="status-dot" />
-                  Снимок на 31 октября 2026
-                </div>
+                <button
+                  className="secondary-button"
+                  onClick={() => openFinance("pnl")}
+                >
+                  Финансовый отчёт <ArrowUpRight size={16} />
+                </button>
               </div>
-              <div className="toolbar">
-                <div className="section-tabs">
-                  <button
-                    className="active"
-                    onClick={() => navigate("overview")}
-                  >
-                    Общие показатели
-                  </button>
-                  <button onClick={() => openFinance("pnl")}>
-                    Финансовый результат <ArrowUpRight size={13} />
-                  </button>
-                </div>
+              <div className="overview-filterbar">
+                <span className="snapshot-label">
+                  <span className="status-dot" /> Данные на 31 октября 2026
+                </span>
                 <Filters
                   role={role}
                   storeId={storeId}
@@ -1053,46 +1033,7 @@ export default function App() {
                   onExport={exportReport}
                 />
               </div>
-              <section
-                className="next-actions"
-                aria-label="Что требует внимания"
-              >
-                <div>
-                  <strong>Что требует внимания</strong>
-                  <span>Перейдите сразу к решению</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setRequestFilter("pending");
-                    setRequestQuery("");
-                    openFinance("requests");
-                  }}
-                >
-                  <Clock3 size={17} />
-                  <span>Заявки на расходы</span>
-                  <b>{pending.length}</b>
-                  <ArrowRight size={15} />
-                </button>
-                <button
-                  onClick={() => {
-                    setTaskFilter("priority");
-                    setTaskQuery("");
-                    navigate("tasks");
-                  }}
-                >
-                  <ClipboardList size={17} />
-                  <span>Приоритетные задачи</span>
-                  <b>
-                    {
-                      scopeTasks.filter(
-                        (t) => t.priority === "high" && t.status !== "done",
-                      ).length
-                    }
-                  </b>
-                  <ArrowRight size={15} />
-                </button>
-              </section>
-              <div className="metrics-grid">
+              <div className="metrics-grid three overview-metrics">
                 <Metric
                   title="Выручка"
                   value={compactMoney(total.revenue)}
@@ -1108,163 +1049,204 @@ export default function App() {
                         ? "к сентябрю"
                         : "к прошлому периоду"
                   }
-                  icon={<TrendingUp size={16} />}
-                  spark
+                  icon={<ArrowUpRight size={18} />}
                   onClick={() => openFinance("pnl")}
                 />
                 <Metric
                   title="Управленческая прибыль"
                   value={compactMoney(total.profit)}
-                  change={
-                    period === "quarter"
-                      ? null
-                      : percentChange(total.profit, previous.profit)
-                  }
-                  subtitle="предварительный расчёт"
-                  icon={<Wallet size={16} />}
+                  subtitle="до налогов и общесетевых расходов"
+                  icon={<ArrowUpRight size={18} />}
                   onClick={() => openFinance("pnl")}
                 />
                 <Metric
                   title="Деньги на счетах и в кассах"
                   value={compactMoney(cash.closing)}
                   subtitle="на конец выбранного периода"
-                  icon={<CreditCard size={16} />}
+                  icon={<ArrowUpRight size={18} />}
                   onClick={() => openFinance("cash")}
                 />
-                <Metric
-                  title="Средний чек"
-                  value={money(total.average)}
-                  change={
-                    period === "quarter"
-                      ? null
-                      : percentChange(total.average, previous.average)
-                  }
-                  subtitle={`${number(total.orders)} заказов за период`}
-                  icon={<FileText size={16} />}
-                  onClick={() => navigate("stores")}
-                />
               </div>
-              <div className="analytics-grid">
+              <div className="overview-main-grid">
                 <section className="card chart-card">
                   <div className="card-heading">
                     <div>
-                      <h2>Динамика выручки</h2>
-                      <p>Продажи и финансовый результат по дням</p>
+                      <h2>Продажи и прибыль</h2>
+                      <p>Динамика по дням, ₸</p>
                     </div>
                     <Badge>{periodLabels[period]}</Badge>
                   </div>
-                  <div className="chart-summary">
-                    <strong>{compactMoney(total.revenue)}</strong>
-                    <div className="chart-keys">
-                      <span>
-                        <i className="purple-dot" />
-                        Выручка
-                      </span>
-                      <span>
-                        <i className="mint-dot" />
-                        Прибыль *
-                      </span>
-                    </div>
+                  <div className="chart-keys">
+                    <span>
+                      <i className="purple-dot" />
+                      Выручка
+                    </span>
+                    <span>
+                      <i className="mint-dot" />
+                      Прибыль до налогов
+                    </span>
                   </div>
                   <RevenueChart rows={rows} />
-                </section>
-                <section className="card expense-card">
-                  <div className="card-heading">
-                    <div>
-                      <h2>Структура расходов</h2>
-                      <p>Куда направлены средства</p>
-                    </div>
-                    <button
-                      className="icon-button small"
-                      aria-label="Подробнее о расходах"
-                      onClick={() => openFinance("pnl")}
-                    >
-                      <ArrowUpRight size={17} />
-                    </button>
+                  <div className="sales-summary">
+                    <span>
+                      <strong>{number(total.orders)}</strong> заказов
+                    </span>
+                    <span>
+                      <strong>{money(total.average)}</strong> средний чек
+                    </span>
                   </div>
-                  <ExpenseChart rows={rows} />
                 </section>
-              </div>
-              <div className="analytics-grid bottom-grid">
-                <section className="card stores-card">
+                <section
+                  className="card decision-inbox"
+                  aria-label="Что требует внимания"
+                >
                   <div className="card-heading">
                     <div>
                       <h2>
-                        Магазины{" "}
-                        <span className="count-label">{ids.length}</span>
+                        {canApprove(role)
+                          ? "Ожидают вашего решения"
+                          : "Заявки на согласовании"}
                       </h2>
-                      <p>Результаты за выбранный период</p>
+                      <p>
+                        {pending.length
+                          ? money(
+                              pending.reduce((sum, r) => sum + r.amount, 0),
+                            ) + " в заявках"
+                          : "Все заявки рассмотрены"}
+                      </p>
+                    </div>
+                    <span className="inbox-count">{pending.length}</span>
+                  </div>
+                  <div className="decision-list">
+                    {pending.slice(0, 3).map((r) => (
+                      <button
+                        key={r.id}
+                        className="decision-row"
+                        onClick={() => setModal("request:" + r.id)}
+                      >
+                        <span className="decision-marker">
+                          <Wallet size={17} />
+                        </span>
+                        <span>
+                          <strong>{r.title}</strong>
+                          <small>
+                            {stores.find((s) => s.id === r.storeId)?.name} ·{" "}
+                            {r.author}
+                          </small>
+                          <b>{money(r.amount)}</b>
+                        </span>
+                        <ChevronRight size={17} />
+                      </button>
+                    ))}
+                    {!pending.length && (
+                      <div className="inbox-clear">
+                        <CircleCheck size={25} />
+                        <strong>Всё рассмотрено</strong>
+                        <span>Новые заявки появятся здесь</span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    className="inbox-footer"
+                    onClick={() => {
+                      setRequestFilter("pending");
+                      setRequestQuery("");
+                      openFinance("requests");
+                    }}
+                  >
+                    Все заявки <ArrowRight size={16} />
+                  </button>
+                </section>
+              </div>
+              <div className="overview-bottom-grid">
+                <section className="card stores-card">
+                  <div className="card-heading">
+                    <div>
+                      <h2>Результаты магазинов</h2>
+                      <p>
+                        {ids.length} магазинов ·{" "}
+                        {periodLabels[period].toLowerCase()}
+                      </p>
                     </div>
                     <button
                       className="text-button"
                       onClick={() => navigate("stores")}
                     >
-                      Все магазины <ArrowRight size={14} />
+                      Все магазины <ArrowRight size={16} />
                     </button>
                   </div>
                   {storeTable(true)}
                   <div className="table-footnote">
-                    * Прибыль до налогов и общесетевых расходов. Демо-расчёт.
+                    Прибыль до налогов и общесетевых расходов.
                   </div>
                 </section>
-                <div className="insights-column">
-                  <section className="ai-insight">
-                    <div className="ai-insight-heading">
-                      <span className="ai-icon">
-                        <Sparkles size={19} />
-                      </span>
-                      <span>Помощник руководителя</span>
-                      <Badge color="purple">AI</Badge>
+                <div className="overview-side">
+                  <section className="card team-brief">
+                    <div className="card-heading">
+                      <h2>Работа команды</h2>
+                      <ClipboardList size={18} />
                     </div>
-                    <h3>
-                      Ваши данные.
-                      <br /> Понятные ответы.
-                    </h3>
-                    <p>
-                      Спросите о выручке, расходах или результатах магазинов.
-                    </p>
+                    <div className="team-progress">
+                      <strong>
+                        {scopeTasks.filter((t) => t.status === "done").length}
+                        <span> / {scopeTasks.length}</span>
+                      </strong>
+                      <span>задач завершено</span>
+                    </div>
+                    <div className="progress-track">
+                      <i
+                        style={{
+                          width: `${scopeTasks.length ? (scopeTasks.filter((t) => t.status === "done").length / scopeTasks.length) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
                     <button
+                      className="inbox-footer"
                       onClick={() => {
-                        navigate("assistant");
-                        ask("Покажи сводку по продажам");
+                        setTaskFilter("priority");
+                        setTaskQuery("");
+                        navigate("tasks");
                       }}
                     >
-                      Посмотреть сводку <ArrowRight size={15} />
+                      <span>
+                        Приоритетные задачи{" "}
+                        <b>
+                          {
+                            scopeTasks.filter(
+                              (t) =>
+                                t.priority === "high" && t.status !== "done",
+                            ).length
+                          }
+                        </b>
+                      </span>
+                      <ArrowRight size={16} />
                     </button>
-                    <span className="ai-decoration" aria-hidden="true">
-                      ✦
+                  </section>
+                  <button
+                    className="assistant-shortcut"
+                    onClick={() => {
+                      navigate("assistant");
+                      ask("Сравни магазины по прибыли");
+                    }}
+                  >
+                    <span className="ai-icon">
+                      <Sparkles size={20} />
                     </span>
-                  </section>
-                  <section className="card attention-card">
-                    <div className="card-heading">
-                      <h2>На согласовании</h2>
-                      <Badge color="orange">{pending.length}</Badge>
-                    </div>
-                    <div className="attention-value">
-                      {money(pending.reduce((sum, r) => sum + r.amount, 0))}
-                    </div>
-                    <p>
-                      {pending.length
-                        ? "Заявки команды ожидают решения"
-                        : "Все заявки рассмотрены"}
-                    </p>
-                    <button
-                      className="text-button"
-                      onClick={() => openFinance("requests")}
-                    >
-                      Перейти к заявкам <ArrowRight size={14} />
-                    </button>
-                  </section>
+                    <span>
+                      <strong>Разобраться в цифрах</strong>
+                      <small>Спросить помощника о результатах</small>
+                    </span>
+                    <ArrowUpRight size={18} />
+                  </button>
                 </div>
               </div>
-            </>
+            </div>
           )}
 
           {activePage === "finance" && (
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">ПРОЗРАЧНОСТЬ В КАЖДОЙ ЦИФРЕ</div>
                   <h1>Финансы</h1>
                   <p>Результат бизнеса, движение денег и контроль расходов.</p>
                 </div>
@@ -1623,36 +1605,29 @@ export default function App() {
                   <div className="notice">
                     <ShieldCheck size={17} />
                     <span>
-                      Согласование заявки не проводит платёж. Здесь показаны
-                      заявки за всё время по выбранным магазинам.{" "}
+                      Согласование не списывает деньги. Заявки за всё время.{" "}
                       {role === "manager" &&
                         "Решения принимают собственник или финансист."}
                     </span>
                   </div>
-                  <div className="metrics-grid three">
-                    <Metric
-                      title="Ожидают согласования"
-                      value={money(pending.reduce((s, r) => s + r.amount, 0))}
-                      subtitle={`${pending.length} заявки`}
-                      icon={<Clock3 size={16} />}
-                    />
-                    <Metric
-                      title="Согласовано, не оплачено"
-                      value={money(
-                        scopeRequests
-                          .filter((r) => r.status === "approved")
-                          .reduce((s, r) => s + r.amount, 0),
-                      )}
-                      subtitle="заявки не включены в ДДС"
-                      icon={<CircleCheck size={16} />}
-                    />
-                    <Metric
-                      title="Всего заявок"
-                      value={String(scopeRequests.length)}
-                      subtitle="с учётом всех статусов"
-                      icon={<FileText size={16} />}
-                    />
-                  </div>
+                  <dl className="request-totals">
+                    <div>
+                      <dt>Ожидают согласования · {pending.length}</dt>
+                      <dd>
+                        {money(pending.reduce((sum, r) => sum + r.amount, 0))}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Согласовано, не оплачено</dt>
+                      <dd>
+                        {money(
+                          scopeRequests
+                            .filter((r) => r.status === "approved")
+                            .reduce((sum, r) => sum + r.amount, 0),
+                        )}
+                      </dd>
+                    </div>
+                  </dl>
                   <section className="card">
                     <div className="card-heading">
                       <div>
@@ -1740,7 +1715,7 @@ export default function App() {
                                   aria-label={"Открыть заявку " + r.id}
                                   onClick={() => setModal("request:" + r.id)}
                                 >
-                                  <ChevronRight size={16} />
+                                  Открыть <ChevronRight size={16} />
                                 </button>
                               </td>
                             </tr>
@@ -1783,7 +1758,6 @@ export default function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">ЕДИНАЯ СЕТЬ · ЕДИНЫЕ ПОКАЗАТЕЛИ</div>
                   <h1>Магазины</h1>
                   <p>Сравнивайте результаты и находите точки роста.</p>
                 </div>
@@ -1808,54 +1782,6 @@ export default function App() {
                   onExport={exportReport}
                 />
               </div>
-              <div className="store-cards">
-                {stores
-                  .filter((s) => ids.includes(s.id))
-                  .map((s, index) => {
-                    const t = summarize(selectedDays([s.id], period));
-                    return (
-                      <button
-                        className="card store-tile"
-                        key={s.id}
-                        onClick={() => setModal("store:" + s.id)}
-                      >
-                        <div className="store-tile-top">
-                          <span
-                            className={`store-avatar large tint-${index % 3}`}
-                          >
-                            <StoreIcon size={22} />
-                          </span>
-                          <Badge color={s.id === "s5" ? "orange" : "green"}>
-                            {s.id === "s5"
-                              ? "Проверить списания"
-                              : "Данные загружены"}
-                          </Badge>
-                        </div>
-                        <h2>{s.name}</h2>
-                        <p>
-                          {s.city} · {s.address}
-                        </p>
-                        <div className="store-tile-stats">
-                          <div>
-                            <small>Выручка</small>
-                            <strong>{compactMoney(t.revenue)}</strong>
-                          </div>
-                          <div>
-                            <small>Маржа *</small>
-                            <strong>{t.margin.toFixed(1)}%</strong>
-                          </div>
-                        </div>
-                        <div className="store-tile-footer">
-                          <span>
-                            <Users size={14} />
-                            {s.manager}
-                          </span>
-                          <ArrowUpRight size={16} />
-                        </div>
-                      </button>
-                    );
-                  })}
-              </div>
               <section className="card">
                 <div className="card-heading">
                   <h2>Сравнение магазинов</h2>
@@ -1874,7 +1800,6 @@ export default function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">ОТ РЕШЕНИЯ К РЕЗУЛЬТАТУ</div>
                   <h1>
                     {role === "employee" ? "Мои задачи" : "Задачи команды"}
                   </h1>
@@ -1969,7 +1894,7 @@ export default function App() {
                   }}
                 />
               )}
-              <div className="kanban">
+              <div className="kanban task-list-view">
                 {(["todo", "doing", "done"] as const).map((status) => (
                   <section key={status} className={"kanban-column " + status}>
                     <div className="kanban-heading">
@@ -2035,7 +1960,7 @@ export default function App() {
                             ) : (
                               <>
                                 <RefreshCw size={13} />
-                                Вернуть к выполнению
+                                Открыть заново
                               </>
                             )}
                           </button>
@@ -2054,7 +1979,6 @@ export default function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">ВАШ ПОМОЩНИК В УПРАВЛЕНИИ</div>
                   <h1>
                     Спросите ROMEO{" "}
                     <Sparkles className="inline-spark" size={23} />
@@ -2228,7 +2152,7 @@ export default function App() {
           <footer className="main-footer">
             <span>
               <Flower2 size={13} />
-              ROMEO OS · пространство для уверенных решений
+              ROMEO OS · управление компанией
             </span>
             <span>Демо · 2026</span>
           </footer>

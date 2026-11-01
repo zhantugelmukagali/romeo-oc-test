@@ -22,7 +22,7 @@ with sync_playwright() as p:
     print('PASS: quick-start walkthrough')
 
     nav = page.locator('.sidebar')
-    for name in ['Финансы', 'Магазины', 'Задачи команды', 'ИИ-помощник', 'Настройки', 'Обзор сети']:
+    for name in ['Финансы', 'Магазины', 'Задачи', 'ИИ-помощник', 'Настройки', 'Обзор сети']:
         nav.get_by_role('button', name=re.compile('^' + re.escape(name))).click()
         expect(nav.get_by_role('button', name=re.compile('^' + re.escape(name)))).to_have_attribute('aria-current', 'page')
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth'), name
@@ -113,10 +113,10 @@ with sync_playwright() as p:
         page.get_by_role('button', name='Скачать операцию').click()
     page.keyboard.press('Escape')
     page.get_by_role('button', name='Магазины', exact=True).click()
-    page.locator('.store-tile').first.click()
+    page.locator('.store-name-button').first.click()
     page.get_by_role('button', name='Задачи магазина', exact=True).click()
     expect(page.locator('.task-card')).not_to_have_count(0)
-    page.locator('.kanban-column.done').get_by_role('button', name='Вернуть к выполнению').first.click()
+    page.locator('.kanban-column.done').get_by_role('button', name='Открыть заново').first.click()
     expect(page.locator('.kanban-column.todo')).to_contain_text('Ознакомиться с правилами списания')
     print('PASS: rejection, status filters, expense CSV, operation CSV, store navigation and task reopening')
 

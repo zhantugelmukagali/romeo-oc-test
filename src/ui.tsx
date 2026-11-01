@@ -25,9 +25,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import {
   compactMoney,
@@ -136,13 +133,13 @@ export function Modal({
   }, []);
   return (
     <div
-      className="modal-backdrop"
+      className={`modal-backdrop ${protectChanges ? "sheet-backdrop" : ""}`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) requestClose();
       }}
     >
       <div
-        className={`modal ${wide ? "wide" : ""}`}
+        className={`modal ${wide ? "wide" : ""} ${protectChanges ? "form-sheet" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -343,8 +340,8 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
         >
           <defs>
             <linearGradient id="revenue-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8c78f5" stopOpacity={0.23} />
-              <stop offset="100%" stopColor="#8c78f5" stopOpacity={0.01} />
+              <stop offset="0%" stopColor="#86ae7b" stopOpacity={0.18} />
+              <stop offset="100%" stopColor="#86ae7b" stopOpacity={0.01} />
             </linearGradient>
           </defs>
           <CartesianGrid
@@ -358,7 +355,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             minTickGap={45}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#9295a5", fontSize: 11 }}
+            tick={{ fill: "#6b746d", fontSize: 12 }}
             dy={10}
           />
           <YAxis
@@ -369,7 +366,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             }
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#9295a5", fontSize: 11 }}
+            tick={{ fill: "#6b746d", fontSize: 12 }}
           />
           <Tooltip
             formatter={(value, name) => [
@@ -378,17 +375,17 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             ]}
             labelFormatter={(label) => shortDate(String(label))}
             contentStyle={{
-              border: "1px solid #ececf4",
+              border: "1px solid #e2e7e2",
               borderRadius: 12,
               boxShadow: "0 8px 24px #22234410",
-              fontSize: 12,
+              fontSize: 13,
             }}
           />
           <Area
             isAnimationActive={false}
             type="monotone"
             dataKey="revenue"
-            stroke="#8064ef"
+            stroke="#28775c"
             strokeWidth={2.5}
             fill="url(#revenue-fill)"
             activeDot={{ r: 5, stroke: "white", strokeWidth: 3 }}
@@ -398,7 +395,7 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
             isAnimationActive={false}
             type="monotone"
             dataKey="profit"
-            stroke="#78c2b4"
+            stroke="#acb8ad"
             strokeWidth={2}
             strokeDasharray="5 4"
             fill="transparent"
@@ -411,66 +408,36 @@ export function RevenueChart({ rows }: { rows: Daily[] }) {
 }
 
 export function ExpenseChart({ rows }: { rows: Daily[] }) {
-  const s = summarize(rows);
-  const data = [
-    { name: "Фонд оплаты труда", value: s.payroll, color: "#8064ef" },
-    { name: "Аренда", value: s.rent, color: "#aa95f5" },
-    { name: "Списания", value: s.writeoffs, color: "#c3b5f9" },
-    { name: "Эквайринг", value: s.fees, color: "#76beb0" },
-    { name: "Прочее", value: s.other, color: "#e3e1f2" },
+  const total = summarize(rows);
+  const items = [
+    { name: "Фонд оплаты труда", value: total.payroll },
+    { name: "Аренда", value: total.rent },
+    { name: "Списания", value: total.writeoffs },
+    { name: "Эквайринг", value: total.fees },
+    { name: "Прочее", value: total.other },
   ];
   return (
-    <>
-      <div className="donut-container">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              isAnimationActive={false}
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={65}
-              outerRadius={83}
-              paddingAngle={3}
-              dataKey="value"
-              stroke="none"
-              cornerRadius={3}
-            >
-              {data.map((d) => (
-                <Cell key={d.name} fill={d.color} />
-              ))}
-            </Pie>
-            <Tooltip
-              formatter={(v) => money(Number(v))}
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 10,
-                border: "1px solid #ececf4",
+    <div className="expense-breakdown">
+      <div className="expense-total">
+        <strong>{compactMoney(total.expenses)}</strong>
+        <span>без себестоимости товаров</span>
+      </div>
+      {items.map((item) => (
+        <div className="expense-item" key={item.name}>
+          <div>
+            <span>{item.name}</span>
+            <strong>{compactMoney(item.value)}</strong>
+          </div>
+          <div className="expense-bar">
+            <i
+              style={{
+                width: `${total.expenses ? (item.value / total.expenses) * 100 : 0}%`,
               }}
             />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="donut-center">
-          <span>Всего расходов</span>
-          <strong>{compactMoney(s.expenses)}</strong>
-          <small>без себестоимости</small>
-        </div>
-      </div>
-      <div className="expense-legend">
-        {data.map((d) => (
-          <div key={d.name}>
-            <span className="legend-name">
-              <i style={{ background: d.color }} />
-              {d.name}
-            </span>
-            <span>
-              {s.expenses ? Math.round((d.value / s.expenses) * 100) : 0}%
-            </span>
-            <strong>{compactMoney(d.value)}</strong>
           </div>
-        ))}
-      </div>
-    </>
+        </div>
+      ))}
+    </div>
   );
 }
 
