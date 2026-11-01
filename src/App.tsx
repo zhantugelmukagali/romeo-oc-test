@@ -42,6 +42,7 @@ import {
   CircleAlert,
   CreditCard,
   CircleCheck,
+  Undo2,
 } from "lucide-react";
 import {
   accessibleTasks,
@@ -86,6 +87,14 @@ import SettingsPage, {
   defaultPreferences,
   type DemoConnection,
 } from "./SettingsPage";
+
+import {
+  initialRole,
+  routeHash,
+  useWorkspaceRoute,
+  type WorkspaceRoute,
+  type FinanceTab,
+} from "./navigation";
 
 function useSaved<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
@@ -133,13 +142,10 @@ const statusLabels: Record<ExpenseStatus, string> = {
 const taskLabels = { todo: "К выполнению", doing: "В работе", done: "Готово" };
 
 export default function App() {
-  const [role, setRole] = useState<Role>("owner");
-  const [page, setPage] = useState<Page>("overview");
-  const [storeId, setStoreId] = useState("all");
-  const [period, setPeriod] = useState<Period>("month");
-  const [financeTab, setFinanceTab] = useState<"pnl" | "cash" | "requests">(
-    "pnl",
-  );
+  const [role, setRole] = useState<Role>(initialRole);
+  const [route, updateRoute] = useWorkspaceRoute(role);
+  const { page, storeId, period, financeTab } = route;
+  const setFinanceTab = (tab: FinanceTab) => updateRoute({ financeTab: tab });
   const [requests, setRequests] = useSaved(
     "romeo-demo-v1-requests",
     initialRequests,
@@ -154,7 +160,20 @@ export default function App() {
     [],
   );
   const [modal, setModal] = useState<string | null>(null);
-  const [toast, setToast] = useState("");
+  const [settingsRevision, setSettingsRevision] = useState(0);
+  const [toast, setToastState] = useState<{
+    message: string;
+    undo?: () => void;
+  } | null>(null);
+  const setToast = useCallback(
+    (message: string, undo?: () => void) =>
+      setToastState(message ? { message, undo } : null),
+    [],
+  );
+  const [createOpen, setCreateOpen] = useState(false);
+  const [requestQuery, setRequestQuery] = useState("");
+  const [taskQuery, setTaskQuery] = useState("");
+  const [taskFilter, setTaskFilter] = useState("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -177,8 +196,22 @@ export default function App() {
   );
   const cash = useMemo(() => cashflow(ids, period), [ids, period]);
   const scopeRequests = requests.filter((r) => ids.includes(r.storeId));
+  const filteredRequests = scopeRequests.filter(
+    (r) =>
+      (requestFilter === "all" || r.status === requestFilter) &&
+      `${r.title} ${r.id} ${r.author}`
+        .toLowerCase()
+        .includes(requestQuery.toLowerCase().trim()),
+  );
   const pending = scopeRequests.filter((r) => r.status === "pending");
   const scopeTasks = accessibleTasks(tasks, role, ids);
+  const filteredTasks = scopeTasks.filter(
+    (t) =>
+      `${t.title} ${t.description} ${t.assignee}`
+        .toLowerCase()
+        .includes(taskQuery.toLowerCase().trim()) &&
+      (taskFilter === "all" || (t.priority === "high" && t.status !== "done")),
+  );
   const scopedOperations = useMemo(
     () => selectedOperations(ids, period),
     [ids, period],
@@ -193,17 +226,16 @@ export default function App() {
   const activePage = roles[role].pages.includes(page) ? page : "tasks";
   const currentNav = navigation.find((n) => n.id === activePage);
   const closeModal = useCallback(() => setModal(null), []);
-  const navigate = (next: Page) => {
-    setPage(next);
+  const navigate = (next: Page, patch: Partial<WorkspaceRoute> = {}) => {
+    updateRoute({ ...patch, page: next });
     setSearch("");
     setSidebarOpen(false);
     setNotificationsOpen(false);
+    setCreateOpen(false);
     window.scrollTo({ top: 0, behavior: "instant" });
   };
-  const openFinance = (tab: typeof financeTab) => {
-    setFinanceTab(tab);
-    navigate("finance");
-  };
+  const openFinance = (tab: FinanceTab) =>
+    navigate("finance", { financeTab: tab });
   const clearChat = () => {
     if (answerTimer.current) clearTimeout(answerTimer.current);
     setThinking(false);
@@ -211,17 +243,25 @@ export default function App() {
     setQuestion("");
   };
   const changeStore = (id: string) => {
-    setStoreId(id);
+    updateRoute({ storeId: id });
     clearChat();
   };
   const changePeriod = (value: Period) => {
-    setPeriod(value);
+    updateRoute({ period: value });
     clearChat();
   };
   const chooseRole = (next: Role) => {
     setRole(next);
-    setStoreId(next === "manager" || next === "employee" ? "s1" : "all");
-    setPage(next === "employee" ? "tasks" : "overview");
+    updateRoute(
+      { page: next === "employee" ? "tasks" : "overview", storeId: "all" },
+      { asRole: next },
+    );
+    try {
+      sessionStorage.setItem("romeo-demo-role", next);
+    } catch {
+      /* Session storage is optional. */
+    }
+    setCreateOpen(false);
     setModal(null);
     setSearch("");
     setNotificationsOpen(false);
@@ -229,9 +269,36 @@ export default function App() {
     setToast(`Вы вошли в демо как ${roles[next].name.toLowerCase()}`);
   };
 
+  const resetFilters = () => {
+    updateRoute({ storeId: "all", period: "month" });
+    setOperationQuery("");
+    setOperationDirection("all");
+    setRequestFilter("all");
+    setRequestQuery("");
+    setTaskQuery("");
+    setTaskFilter("all");
+    clearChat();
+  };
+  useEffect(() => {
+    const clearTransient = () => {
+      setModal(null);
+      setSearch("");
+      setSidebarOpen(false);
+      setNotificationsOpen(false);
+      setCreateOpen(false);
+    };
+    window.addEventListener("popstate", clearTransient);
+    return () => window.removeEventListener("popstate", clearTransient);
+  }, []);
+  useEffect(() => {
+    if (answerTimer.current) clearTimeout(answerTimer.current);
+    setThinking(false);
+    setMessages([]);
+    setQuestion("");
+  }, [storeId, period, role]);
   useEffect(() => {
     if (!toast) return;
-    const timer = setTimeout(() => setToast(""), 4500);
+    const timer = setTimeout(() => setToast(""), toast.undo ? 10000 : 4500);
     return () => clearTimeout(timer);
   }, [toast]);
   useEffect(() => {
@@ -247,6 +314,7 @@ export default function App() {
         setSearch("");
         setNotificationsOpen(false);
         setSidebarOpen(false);
+        setCreateOpen(false);
       }
     };
     window.addEventListener("keydown", handle);
@@ -293,15 +361,13 @@ export default function App() {
       exportCsv("ROMEO-Заявки-демо.csv", [
         ["ДЕМО-ДАННЫЕ"],
         ["Номер", "Магазин", "Заявка", "Сумма", "Статус"],
-        ...scopeRequests
-          .filter((r) => requestFilter === "all" || r.status === requestFilter)
-          .map((r) => [
-            r.id,
-            stores.find((s) => s.id === r.storeId)!.name,
-            r.title,
-            r.amount,
-            statusLabels[r.status],
-          ]),
+        ...filteredRequests.map((r) => [
+          r.id,
+          stores.find((s) => s.id === r.storeId)!.name,
+          r.title,
+          r.amount,
+          statusLabels[r.status],
+        ]),
       ]);
     } else {
       exportCsv("ROMEO-Отчёт-демо.csv", [
@@ -353,6 +419,16 @@ export default function App() {
       status === "approved"
         ? "Заявка согласована. Оплата ещё не проведена."
         : "Заявка отклонена",
+      () => {
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === id && r.status === status
+              ? { ...r, status: "pending" }
+              : r,
+          ),
+        );
+        setToast("Решение отменено. Заявка снова на согласовании.");
+      },
     );
     setModal(null);
   };
@@ -367,7 +443,16 @@ export default function App() {
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, status } : t)),
     );
-    setToast(`Задача: ${taskLabels[status].toLowerCase()}`);
+    setToast(`Задача: ${taskLabels[status].toLowerCase()}`, () => {
+      setTasks((prev) =>
+        prev.map((t) =>
+          t.id === task.id && t.status === status
+            ? { ...t, status: task.status }
+            : t,
+        ),
+      );
+      setToast("Изменение статуса отменено");
+    });
   };
   const ask = (value: string) => {
     if (!value.trim() || thinking) return;
@@ -427,7 +512,11 @@ export default function App() {
             key: t.id,
             title: t.title,
             subtitle: "Задача · " + taskLabels[t.status],
-            action: () => navigate("tasks"),
+            action: () => {
+              setTaskQuery(t.title);
+              setTaskFilter("all");
+              navigate("tasks");
+            },
           })),
         ...(role !== "employee"
           ? scopeRequests
@@ -562,6 +651,7 @@ export default function App() {
               <button
                 key={n.id}
                 className={`nav-item ${activePage === n.id ? "active" : ""}`}
+                aria-current={activePage === n.id ? "page" : undefined}
                 onClick={() => navigate(n.id)}
               >
                 <n.icon size={18} />
@@ -591,6 +681,7 @@ export default function App() {
           <div className="nav-caption bottom-caption">ПРОЧЕЕ</div>
           <button
             className={`nav-item ${activePage === "settings" ? "active" : ""}`}
+            aria-current={activePage === "settings" ? "page" : undefined}
             onClick={() => navigate("settings")}
           >
             <Settings2 size={18} />
@@ -631,10 +722,43 @@ export default function App() {
                 placeholder="Поиск по системе"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && searchResults[0]) {
+                    e.preventDefault();
+                    searchResults[0].action();
+                  }
+                  if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    document
+                      .querySelector<HTMLButtonElement>(
+                        ".search-results button",
+                      )
+                      ?.focus();
+                  }
+                }}
               />
               <kbd>⌘ K</kbd>
               {search && (
-                <div className="search-results">
+                <div
+                  className="search-results"
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      e.preventDefault();
+                      const buttons = [
+                        ...e.currentTarget.querySelectorAll("button"),
+                      ];
+                      const index = buttons.indexOf(
+                        document.activeElement as HTMLButtonElement,
+                      );
+                      buttons[
+                        (index +
+                          (e.key === "ArrowDown" ? 1 : -1) +
+                          buttons.length) %
+                          buttons.length
+                      ]?.focus();
+                    }
+                  }}
+                >
                   <small>РЕЗУЛЬТАТЫ ПОИСКА</small>
                   {searchResults.length ? (
                     searchResults.map((r) => (
@@ -657,15 +781,57 @@ export default function App() {
               )}
             </div>
             {role !== "employee" && (
-              <button
-                className="network-pill"
-                onClick={() => navigate("stores")}
-              >
-                <StoreIcon size={15} />
-                {visibleStores(role).length === 1
-                  ? "Мой магазин"
-                  : "8 магазинов"}
-              </button>
+              <div className="create-wrapper">
+                <button
+                  className="primary-button quick-create"
+                  aria-label="Создать"
+                  aria-expanded={createOpen}
+                  onClick={() => {
+                    setCreateOpen(!createOpen);
+                    setNotificationsOpen(false);
+                  }}
+                >
+                  <Plus size={16} />
+                  <span>Создать</span>
+                  <ChevronDown size={13} />
+                </button>
+                {createOpen && (
+                  <>
+                    <button
+                      className="popover-dismiss"
+                      tabIndex={-1}
+                      aria-label="Закрыть меню создания"
+                      onClick={() => setCreateOpen(false)}
+                    />
+                    <div className="create-popover">
+                      <button
+                        onClick={() => {
+                          setCreateOpen(false);
+                          setModal("new-request");
+                        }}
+                      >
+                        <Wallet size={18} />
+                        <span>
+                          <strong>Заявку на расход</strong>
+                          <small>Передать расход на согласование</small>
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setCreateOpen(false);
+                          setModal("new-task");
+                        }}
+                      >
+                        <ClipboardList size={18} />
+                        <span>
+                          <strong>Задачу команде</strong>
+                          <small>Назначить ответственного и срок</small>
+                        </span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
             )}
             <div className="notification-wrap">
               <button
@@ -780,28 +946,55 @@ export default function App() {
             </button>
           </div>
         </header>
-        <nav
-          className="product-tabs"
-          aria-label="Разделы рабочего пространства"
-        >
-          {[
-            ...navigation,
-            { id: "settings" as Page, label: "Настройки", icon: Settings2 },
-          ]
+        <div className="workspace-context">
+          <span>Romeo</span>
+          <ChevronRight size={13} />
+          <strong>{currentNav?.label ?? "Настройки"}</strong>
+          <span className="context-role">
+            <ShieldCheck size={13} />
+            {roles[role].name}
+          </span>
+          {storeId !== "all" && activePage !== "settings" && (
+            <span className="scope-chip">
+              <StoreIcon size={13} />
+              {stores.find((s) => s.id === storeId)?.name}
+              {visibleStores(role).length > 1 && (
+                <button
+                  aria-label="Вернуться ко всей сети"
+                  onClick={() => changeStore("all")}
+                >
+                  <X size={13} />
+                </button>
+              )}
+            </span>
+          )}
+        </div>
+        <nav className="mobile-bottom-nav" aria-label="Мобильная навигация">
+          {navigation
             .filter((n) => roles[role].pages.includes(n.id))
             .map((n) => (
               <a
                 key={n.id}
-                href={"#" + n.id}
-                className={activePage === n.id ? "active" : ""}
+                href={routeHash({ ...route, page: n.id })}
                 aria-current={activePage === n.id ? "page" : undefined}
                 onClick={(event) => {
                   event.preventDefault();
                   navigate(n.id);
                 }}
               >
-                <n.icon size={15} />
-                {n.label}
+                <n.icon size={19} />
+                <span>
+                  {
+                    {
+                      overview: "Обзор",
+                      finance: "Финансы",
+                      stores: "Магазины",
+                      tasks: "Задачи",
+                      assistant: "Помощник",
+                      settings: "Настройки",
+                    }[n.id]
+                  }
+                </span>
               </a>
             ))}
         </nav>
@@ -856,9 +1049,49 @@ export default function App() {
                   setStoreId={changeStore}
                   period={period}
                   setPeriod={changePeriod}
+                  onReset={resetFilters}
                   onExport={exportReport}
                 />
               </div>
+              <section
+                className="next-actions"
+                aria-label="Что требует внимания"
+              >
+                <div>
+                  <strong>Что требует внимания</strong>
+                  <span>Перейдите сразу к решению</span>
+                </div>
+                <button
+                  onClick={() => {
+                    setRequestFilter("pending");
+                    setRequestQuery("");
+                    openFinance("requests");
+                  }}
+                >
+                  <Clock3 size={17} />
+                  <span>Заявки на расходы</span>
+                  <b>{pending.length}</b>
+                  <ArrowRight size={15} />
+                </button>
+                <button
+                  onClick={() => {
+                    setTaskFilter("priority");
+                    setTaskQuery("");
+                    navigate("tasks");
+                  }}
+                >
+                  <ClipboardList size={17} />
+                  <span>Приоритетные задачи</span>
+                  <b>
+                    {
+                      scopeTasks.filter(
+                        (t) => t.priority === "high" && t.status !== "done",
+                      ).length
+                    }
+                  </b>
+                  <ArrowRight size={15} />
+                </button>
+              </section>
               <div className="metrics-grid">
                 <Metric
                   title="Выручка"
@@ -1070,6 +1303,7 @@ export default function App() {
                   setStoreId={changeStore}
                   period={period}
                   setPeriod={changePeriod}
+                  onReset={resetFilters}
                   onExport={exportReport}
                   showPeriod={financeTab !== "requests"}
                 />
@@ -1348,6 +1582,11 @@ export default function App() {
                       <Empty
                         title="Операции не найдены"
                         description="Измените поисковый запрос или фильтры."
+                        actionLabel="Сбросить поиск"
+                        onAction={() => {
+                          setOperationQuery("");
+                          setOperationDirection("all");
+                        }}
                       />
                     )}
                     <div className="pagination">
@@ -1416,19 +1655,40 @@ export default function App() {
                   </div>
                   <section className="card">
                     <div className="card-heading">
-                      <h2>Заявки команды</h2>
-                      <select
-                        value={requestFilter}
-                        aria-label="Статус заявки"
-                        onChange={(e) => setRequestFilter(e.target.value)}
-                      >
-                        <option value="all">Все статусы</option>
-                        {Object.entries(statusLabels).map(([value, title]) => (
-                          <option value={value} key={value}>
-                            {title}
-                          </option>
-                        ))}
-                      </select>
+                      <div>
+                        <h2>Заявки команды</h2>
+                        <p>
+                          {filteredRequests.length} из {scopeRequests.length} ·
+                          {canApprove(role)
+                            ? " откройте заявку, чтобы принять решение"
+                            : " откройте заявку, чтобы посмотреть статус и детали"}
+                        </p>
+                      </div>
+                      <div className="table-controls">
+                        <label className="inline-search">
+                          <Search size={15} />
+                          <input
+                            aria-label="Поиск заявок"
+                            placeholder="Название, номер или автор"
+                            value={requestQuery}
+                            onChange={(e) => setRequestQuery(e.target.value)}
+                          />
+                        </label>
+                        <select
+                          value={requestFilter}
+                          aria-label="Статус заявки"
+                          onChange={(e) => setRequestFilter(e.target.value)}
+                        >
+                          <option value="all">Все статусы</option>
+                          {Object.entries(statusLabels).map(
+                            ([value, title]) => (
+                              <option value={value} key={value}>
+                                {title}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </div>
                     </div>
                     <div className="table-scroll">
                       <table className="requests-table">
@@ -1443,64 +1703,74 @@ export default function App() {
                           </tr>
                         </thead>
                         <tbody>
-                          {scopeRequests
-                            .filter(
-                              (r) =>
-                                requestFilter === "all" ||
-                                r.status === requestFilter,
-                            )
-                            .map((r) => (
-                              <tr key={r.id}>
-                                <td>
-                                  <button
-                                    className="table-text-button"
-                                    onClick={() => setModal("request:" + r.id)}
-                                  >
-                                    <strong>{r.title}</strong>
-                                    <small>
-                                      {r.id} · {shortDate(r.date)}
-                                    </small>
-                                  </button>
-                                </td>
-                                <td>
-                                  {stores.find((s) => s.id === r.storeId)?.name}
-                                </td>
-                                <td>{r.author}</td>
-                                <td className="numeric">{money(r.amount)}</td>
-                                <td>
-                                  <Badge
-                                    color={
-                                      r.status === "pending"
-                                        ? "orange"
-                                        : r.status === "approved"
-                                          ? "green"
-                                          : "red"
-                                    }
-                                  >
-                                    {statusLabels[r.status]}
-                                  </Badge>
-                                </td>
-                                <td>
-                                  <button
-                                    className="icon-button small"
-                                    aria-label={"Открыть заявку " + r.id}
-                                    onClick={() => setModal("request:" + r.id)}
-                                  >
-                                    <ChevronRight size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                          {filteredRequests.map((r) => (
+                            <tr key={r.id}>
+                              <td>
+                                <button
+                                  className="table-text-button"
+                                  onClick={() => setModal("request:" + r.id)}
+                                >
+                                  <strong>{r.title}</strong>
+                                  <small>
+                                    {r.id} · {shortDate(r.date)}
+                                  </small>
+                                </button>
+                              </td>
+                              <td>
+                                {stores.find((s) => s.id === r.storeId)?.name}
+                              </td>
+                              <td>{r.author}</td>
+                              <td className="numeric">{money(r.amount)}</td>
+                              <td>
+                                <Badge
+                                  color={
+                                    r.status === "pending"
+                                      ? "orange"
+                                      : r.status === "approved"
+                                        ? "green"
+                                        : "red"
+                                  }
+                                >
+                                  {statusLabels[r.status]}
+                                </Badge>
+                              </td>
+                              <td>
+                                <button
+                                  className="icon-button small"
+                                  aria-label={"Открыть заявку " + r.id}
+                                  onClick={() => setModal("request:" + r.id)}
+                                >
+                                  <ChevronRight size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
-                    {!scopeRequests.filter(
-                      (r) =>
-                        requestFilter === "all" || r.status === requestFilter,
-                    ).length && (
+                    {!filteredRequests.length && (
                       <Empty
-                        title="Заявок пока нет"
-                        description="Создайте заявку на расход или выберите другой статус."
+                        title={
+                          scopeRequests.length
+                            ? "Нет заявок по выбранным условиям"
+                            : "Заявок пока нет"
+                        }
+                        description={
+                          scopeRequests.length
+                            ? "Очистите поиск и статус, чтобы увидеть все заявки магазина."
+                            : "Создайте первую заявку и передайте её на согласование."
+                        }
+                        actionLabel={
+                          scopeRequests.length
+                            ? "Показать все заявки"
+                            : "Создать заявку"
+                        }
+                        onAction={() => {
+                          if (scopeRequests.length) {
+                            setRequestQuery("");
+                            setRequestFilter("all");
+                          } else setModal("new-request");
+                        }}
                       />
                     )}
                   </section>
@@ -1534,6 +1804,7 @@ export default function App() {
                   setStoreId={changeStore}
                   period={period}
                   setPeriod={changePeriod}
+                  onReset={resetFilters}
                   onExport={exportReport}
                 />
               </div>
@@ -1651,6 +1922,53 @@ export default function App() {
                   </label>
                 )}
               </div>
+              <div className="task-filters">
+                <label className="inline-search">
+                  <Search size={15} />
+                  <input
+                    aria-label="Поиск задач"
+                    placeholder="Задача или ответственный"
+                    value={taskQuery}
+                    onChange={(e) => setTaskQuery(e.target.value)}
+                  />
+                </label>
+                <div className="filter-chips">
+                  <button
+                    className={taskFilter === "all" ? "selected" : ""}
+                    onClick={() => setTaskFilter("all")}
+                  >
+                    Все задачи
+                  </button>
+                  <button
+                    className={taskFilter === "priority" ? "selected" : ""}
+                    onClick={() => setTaskFilter("priority")}
+                  >
+                    Приоритетные
+                  </button>
+                </div>
+                {(taskQuery || taskFilter !== "all") && (
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      setTaskQuery("");
+                      setTaskFilter("all");
+                    }}
+                  >
+                    Сбросить
+                  </button>
+                )}
+              </div>
+              {!filteredTasks.length && (
+                <Empty
+                  title="Задачи не найдены"
+                  description="Измените поиск или покажите все задачи."
+                  actionLabel="Показать все задачи"
+                  onAction={() => {
+                    setTaskQuery("");
+                    setTaskFilter("all");
+                  }}
+                />
+              )}
               <div className="kanban">
                 {(["todo", "doing", "done"] as const).map((status) => (
                   <section key={status} className={"kanban-column " + status}>
@@ -1660,10 +1978,13 @@ export default function App() {
                         {taskLabels[status]}
                       </h2>
                       <span>
-                        {scopeTasks.filter((t) => t.status === status).length}
+                        {
+                          filteredTasks.filter((t) => t.status === status)
+                            .length
+                        }
                       </span>
                     </div>
-                    {scopeTasks
+                    {filteredTasks
                       .filter((t) => t.status === status)
                       .map((t) => (
                         <article className="card task-card" key={t.id}>
@@ -1720,7 +2041,7 @@ export default function App() {
                           </button>
                         </article>
                       ))}
-                    {!scopeTasks.some((t) => t.status === status) && (
+                    {!filteredTasks.some((t) => t.status === status) && (
                       <div className="kanban-empty">Здесь пока нет задач</div>
                     )}
                   </section>
@@ -1757,6 +2078,7 @@ export default function App() {
                     setStoreId={changeStore}
                     period={period}
                     setPeriod={changePeriod}
+                    onReset={resetFilters}
                   />
                 </div>
               )}
@@ -1887,6 +2209,7 @@ export default function App() {
 
           {activePage === "settings" && (
             <SettingsPage
+              key={`${role}:${settingsRevision}`}
               role={role}
               preferences={preferences}
               connections={connections}
@@ -2063,9 +2386,10 @@ export default function App() {
             <button
               className="secondary-button"
               onClick={() => {
-                changeStore(selectedStore.id);
                 setModal(null);
-                navigate("tasks");
+                setTaskFilter("all");
+                setTaskQuery("");
+                navigate("tasks", { storeId: selectedStore.id });
               }}
             >
               Задачи магазина
@@ -2073,9 +2397,11 @@ export default function App() {
             <button
               className="primary-button"
               onClick={() => {
-                changeStore(selectedStore.id);
                 setModal(null);
-                openFinance("pnl");
+                navigate("finance", {
+                  storeId: selectedStore.id,
+                  financeTab: "pnl",
+                });
               }}
             >
               Открыть финансы <ArrowRight size={15} />
@@ -2087,6 +2413,7 @@ export default function App() {
         <Modal
           title="Новая заявка на расход"
           subtitle="Опишите расход и передайте его на согласование."
+          protectChanges
           onClose={closeModal}
         >
           <RequestForm
@@ -2095,8 +2422,15 @@ export default function App() {
             onSave={(r) => {
               setRequests((prev) => [r, ...prev]);
               setModal(null);
-              setFinanceTab("requests");
-              setToast("Заявка создана и отправлена на согласование");
+              setRequestFilter("all");
+              setRequestQuery("");
+              navigate("finance", {
+                financeTab: "requests",
+                storeId: ids.includes(r.storeId) ? storeId : r.storeId,
+              });
+              setToast(
+                `Заявка «${r.title}» создана. Её рассмотрит собственник или финансист.`,
+              );
             }}
           />
         </Modal>
@@ -2105,6 +2439,7 @@ export default function App() {
         <Modal
           title="Новая задача"
           subtitle="Укажите результат, ответственного и срок."
+          protectChanges
           onClose={closeModal}
         >
           <TaskForm
@@ -2113,7 +2448,12 @@ export default function App() {
             onSave={(t) => {
               setTasks((prev) => [t, ...prev]);
               setModal(null);
-              setToast("Задача создана");
+              setTaskQuery("");
+              setTaskFilter("all");
+              navigate("tasks", {
+                storeId: ids.includes(t.storeId) ? storeId : t.storeId,
+              });
+              setToast(`Задача назначена: ${t.assignee}`);
             }}
           />
         </Modal>
@@ -2135,6 +2475,15 @@ export default function App() {
                 setTasks(initialTasks);
                 setPreferences(defaultPreferences);
                 setConnections([]);
+                try {
+                  Object.keys(roles).forEach((name) =>
+                    sessionStorage.removeItem("romeo-settings-draft:" + name),
+                  );
+                } catch {
+                  /* Draft storage is optional. */
+                }
+                setSettingsRevision((value) => value + 1);
+                resetFilters();
                 clearChat();
                 setModal(null);
                 setToast("Демонстрация восстановлена");
@@ -2194,7 +2543,13 @@ export default function App() {
       {toast && (
         <div className="toast" role="status">
           <CircleCheck size={18} />
-          <span>{toast}</span>
+          <span>{toast.message}</span>
+          {toast.undo && (
+            <button className="undo-button" onClick={toast.undo}>
+              <Undo2 size={15} />
+              Отменить действие
+            </button>
+          )}
           <button aria-label="Закрыть уведомление" onClick={() => setToast("")}>
             <X size={15} />
           </button>
@@ -2284,6 +2639,7 @@ function RequestForm({
   onSave: (r: ExpenseRequest) => void;
 }) {
   const allowed = visibleStores(role);
+  const [error, setError] = useState("");
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
@@ -2295,8 +2651,20 @@ function RequestForm({
       !Number.isFinite(amount) ||
       amount <= 0 ||
       !allowed.some((s) => s.id === id)
-    )
+    ) {
+      setError("Укажите название расхода, положительную сумму и магазин.");
+      (
+        e.currentTarget.elements.namedItem("title") as HTMLInputElement
+      )?.focus();
       return;
+    }
+    if (!String(form.get("note")).trim()) {
+      setError("Опишите, для чего нужен расход.");
+      (
+        e.currentTarget.elements.namedItem("note") as HTMLTextAreaElement
+      )?.focus();
+      return;
+    }
     onSave({
       id: "REQ-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
       title,
@@ -2310,7 +2678,11 @@ function RequestForm({
     });
   };
   return (
-    <form onSubmit={submit} className="form-layout">
+    <form
+      onSubmit={submit}
+      className="form-layout"
+      onChange={() => setError("")}
+    >
       <label>
         Название расхода
         <input
@@ -2373,6 +2745,11 @@ function RequestForm({
         Заявку рассмотрит собственник или финансист. В демо деньги не
         списываются.
       </div>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
       <button className="primary-button full-width" type="submit">
         <Send size={16} />
         Отправить на согласование
@@ -2390,6 +2767,7 @@ function TaskForm({
   onSave: (t: Task) => void;
 }) {
   const allowed = visibleStores(role);
+  const [error, setError] = useState("");
   const [target, setTarget] = useState(
     allowed.some((s) => s.id === storeId) ? storeId : allowed[0].id,
   );
@@ -2397,7 +2775,20 @@ function TaskForm({
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     const title = String(form.get("title")).trim();
-    if (!title || !allowed.some((s) => s.id === target)) return;
+    if (!title || !allowed.some((s) => s.id === target)) {
+      setError("Укажите название задачи и магазин.");
+      (
+        e.currentTarget.elements.namedItem("title") as HTMLInputElement
+      )?.focus();
+      return;
+    }
+    if (!String(form.get("description")).trim()) {
+      setError("Опишите ожидаемый результат задачи.");
+      (
+        e.currentTarget.elements.namedItem("description") as HTMLTextAreaElement
+      )?.focus();
+      return;
+    }
     onSave({
       id: "TASK-" + crypto.randomUUID(),
       title,
@@ -2410,7 +2801,11 @@ function TaskForm({
     });
   };
   return (
-    <form className="form-layout" onSubmit={submit}>
+    <form
+      className="form-layout"
+      onSubmit={submit}
+      onChange={() => setError("")}
+    >
       <label>
         Название задачи
         <input
@@ -2468,6 +2863,11 @@ function TaskForm({
           <option value="high">Приоритетный</option>
         </select>
       </label>
+      {error && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
       <button className="primary-button full-width" type="submit">
         <Plus size={16} />
         Создать задачу

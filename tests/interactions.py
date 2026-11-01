@@ -21,13 +21,13 @@ with sync_playwright() as p:
     expect(page.get_by_role('dialog')).to_have_count(0)
     print('PASS: quick-start walkthrough')
 
-    nav = page.get_by_role('navigation', name='Разделы рабочего пространства')
+    nav = page.locator('.sidebar')
     for name in ['Финансы', 'Магазины', 'Задачи команды', 'ИИ-помощник', 'Настройки', 'Обзор сети']:
-        nav.get_by_role('link', name=name, exact=True).click()
-        expect(nav.get_by_role('link', name=name, exact=True)).to_have_attribute('aria-current', 'page')
+        nav.get_by_role('button', name=re.compile('^' + re.escape(name))).click()
+        expect(nav.get_by_role('button', name=re.compile('^' + re.escape(name)))).to_have_attribute('aria-current', 'page')
         assert not page.evaluate('document.documentElement.scrollWidth > innerWidth'), name
     page.screenshot(path=str(OUT / 'overview-reference.png'), full_page=True)
-    print('PASS: all horizontal navigation links and desktop layout')
+    print('PASS: all main navigation buttons and desktop layout')
 
     page.get_by_role('button', name='Настройки пространства', exact=True).click()
     expect(page.get_by_role('heading', name='Настройки пространства', exact=True)).to_be_visible()
@@ -120,17 +120,17 @@ with sync_playwright() as p:
     expect(page.locator('.kanban-column.todo')).to_contain_text('Ознакомиться с правилами списания')
     print('PASS: rejection, status filters, expense CSV, operation CSV, store navigation and task reopening')
 
-    nav.get_by_role('link', name='ИИ-помощник', exact=True).click()
+    nav.get_by_role('button', name=re.compile('^ИИ-помощник')).click()
     page.get_by_role('button', name='Какая выручка за октябрь?', exact=True).click()
     expect(page.locator('.answer-text')).to_contain_text('Выручка:')
     page.get_by_role('button', name='Новый диалог', exact=True).click()
     expect(page.locator('.answer-text')).to_have_count(0)
-    nav.get_by_role('link', name='Настройки', exact=True).click()
+    nav.get_by_role('button', name='Настройки', exact=True).click()
     page.get_by_role('button', name='Тестовый диалог', exact=True).click()
     expect(page.get_by_role('heading', name=re.compile('Спросите ROMEO'))).to_be_visible()
     print('PASS: new conversation and test-dialog shortcut')
 
-    nav.get_by_role('link', name='Настройки', exact=True).click()
+    nav.get_by_role('button', name='Настройки', exact=True).click()
     page.get_by_role('button', name='Сбросить демо', exact=True).click()
     page.get_by_role('button', name='Восстановить демо', exact=True).click()
     expect(page.locator('.workspace-switch')).to_contain_text('Romeo Flowers')

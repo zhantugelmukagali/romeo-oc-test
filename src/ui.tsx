@@ -1,4 +1,11 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useId,
+  type ReactNode,
+} from "react";
 import {
   X,
   ArrowDownLeft,
@@ -8,6 +15,7 @@ import {
   Store,
   Download,
   Inbox,
+  RotateCcw,
 } from "lucide-react";
 import {
   Area,
@@ -40,14 +48,29 @@ export function Modal({
   children,
   onClose,
   wide = false,
+  protectChanges = false,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  protectChanges?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+  const dirty = useRef(false);
+  const close = useRef(onClose);
+  close.current = onClose;
+  const protectedForm = useRef(protectChanges);
+  protectedForm.current = protectChanges;
+  const [discard, setDiscard] = useState(false);
+  const discarding = useRef(discard);
+  discarding.current = discard;
+  const requestClose = useCallback(() => {
+    if (protectedForm.current && dirty.current) setDiscard(true);
+    else close.current();
+  }, []);
   useEffect(() => {
     const oldFocus = document.activeElement as HTMLElement | null;
     const oldOverflow = document.body.style.overflow;
@@ -57,10 +80,18 @@ export function Modal({
         ref.current?.querySelectorAll<HTMLElement>(
           'button, input, select, textarea, [tabindex="0"]',
         ) ?? [],
-      ).filter((el) => !el.hasAttribute("disabled"));
-    items()[0]?.focus();
+      ).filter(
+        (el) => !el.hasAttribute("disabled") && el.offsetParent !== null,
+      );
+    const input = ref.current?.querySelector<HTMLInputElement>(
+      "input:not([disabled]):not([readonly]), textarea:not([disabled])",
+    );
+    (input ?? items()[0])?.focus();
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (discarding.current) setDiscard(false);
+        else requestClose();
+      }
       if (e.key === "Tab") {
         const list = items();
         const first = list[0];
@@ -80,35 +111,87 @@ export function Modal({
       document.body.style.overflow = oldOverflow;
       oldFocus?.focus();
     };
-  }, [onClose]);
+  }, [requestClose]);
+  useEffect(() => {
+    if (discard)
+      ref.current
+        ?.querySelector<HTMLButtonElement>(".discard-prompt button")
+        ?.focus();
+    else
+      ref.current
+        ?.querySelector<HTMLInputElement>(
+          "input:not([disabled]):not([readonly]), textarea:not([disabled])",
+        )
+        ?.focus();
+  }, [discard]);
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (protectedForm.current && dirty.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
   return (
     <div
       className="modal-backdrop"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) requestClose();
       }}
     >
       <div
         className={`modal ${wide ? "wide" : ""}`}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="modal-title"
+        aria-labelledby={titleId}
         ref={ref}
       >
         <div className="modal-heading">
           <div>
-            <h2 id="modal-title">{title}</h2>
+            <h2 id={titleId}>{title}</h2>
             {subtitle && <p>{subtitle}</p>}
           </div>
           <button
             className="icon-button"
             aria-label="Закрыть окно"
-            onClick={onClose}
+            onClick={requestClose}
           >
             <X size={20} />
           </button>
         </div>
-        {children}
+        {discard && (
+          <div className="discard-prompt">
+            <h3>Закрыть без сохранения?</h3>
+            <p>
+              Заполненные поля будут потеряны. Вы можете продолжить работу с
+              формой.
+            </p>
+            <div className="modal-actions">
+              <button
+                className="primary-button"
+                onClick={() => setDiscard(false)}
+              >
+                Продолжить заполнение
+              </button>
+              <button
+                className="secondary-button danger-text"
+                onClick={() => close.current()}
+              >
+                Не сохранять
+              </button>
+            </div>
+          </div>
+        )}
+        <div
+          hidden={discard}
+          onChangeCapture={() => {
+            dirty.current = true;
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -122,6 +205,7 @@ export function Filters({
   setPeriod,
   onExport,
   showPeriod = true,
+  onReset,
 }: {
   role: Role;
   storeId: string;
@@ -130,6 +214,7 @@ export function Filters({
   setPeriod: (v: Period) => void;
   onExport?: () => void;
   showPeriod?: boolean;
+  onReset?: () => void;
 }) {
   const available = visibleStores(role);
   return (
@@ -177,6 +262,14 @@ export function Filters({
           <Download size={17} />
         </button>
       )}
+      {onReset &&
+        ((available.length > 1 && storeId !== "all") ||
+          (showPeriod && period !== "month")) && (
+          <button className="filter-reset" onClick={onReset}>
+            <RotateCcw size={14} />
+            Сбросить фильтры
+          </button>
+        )}
     </div>
   );
 }
@@ -384,15 +477,24 @@ export function ExpenseChart({ rows }: { rows: Daily[] }) {
 export function Empty({
   title,
   description,
+  actionLabel,
+  onAction,
 }: {
   title: string;
   description: string;
+  actionLabel?: string;
+  onAction?: () => void;
 }) {
   return (
     <div className="empty-state">
       <Inbox size={28} />
       <strong>{title}</strong>
       <p>{description}</p>
+      {actionLabel && onAction && (
+        <button className="secondary-button" onClick={onAction}>
+          {actionLabel}
+        </button>
+      )}
     </div>
   );
 }

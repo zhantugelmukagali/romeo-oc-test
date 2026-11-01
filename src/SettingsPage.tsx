@@ -81,7 +81,24 @@ export default function SettingsPage({
   const [tab, setTab] = useState<"general" | "access" | "integrations">(
     "general",
   );
-  const [draft, setDraft] = useState(preferences);
+  const draftKey = "romeo-settings-draft:" + role;
+  const [draft, setDraft] = useState(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(draftKey) ?? "null");
+      if (
+        saved?.base === JSON.stringify(preferences) &&
+        saved.draft &&
+        Object.entries(preferences).every(
+          ([key, value]) => typeof saved.draft[key] === typeof value,
+        )
+      )
+        return saved.draft as Preferences;
+    } catch {
+      /* A draft is optional. */
+    }
+    return preferences;
+  });
+  const previousPreferences = useRef(JSON.stringify(preferences));
   const [avatarPicker, setAvatarPicker] = useState(false);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
@@ -96,8 +113,24 @@ export default function SettingsPage({
   const dirty = JSON.stringify(draft) !== JSON.stringify(preferences);
 
   useEffect(() => {
-    setDraft(preferences);
+    const fingerprint = JSON.stringify(preferences);
+    if (previousPreferences.current !== fingerprint) {
+      previousPreferences.current = fingerprint;
+      setDraft(preferences);
+    }
   }, [preferences]);
+  useEffect(() => {
+    try {
+      if (dirty)
+        sessionStorage.setItem(
+          draftKey,
+          JSON.stringify({ base: JSON.stringify(preferences), draft }),
+        );
+      else sessionStorage.removeItem(draftKey);
+    } catch {
+      /* Saving the actual preferences is still available. */
+    }
+  }, [draft, preferences, draftKey, dirty]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
   const save = (event: FormEvent) => {
     event.preventDefault();
@@ -299,7 +332,7 @@ export default function SettingsPage({
               <div className="settings-save-row">
                 <span>
                   {dirty
-                    ? "Есть несохранённые изменения"
+                    ? "Черновик сохранён в этой вкладке. Примените изменения кнопкой справа."
                     : "Настройки актуальны"}
                 </span>
                 <button className="primary-button" type="submit">
