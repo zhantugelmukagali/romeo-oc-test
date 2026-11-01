@@ -676,13 +676,6 @@ main {
   border-radius: 50%;
   background: #757575;
 }
-.overview-filterbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 22px;
-}
 .filters {
   display: flex;
   align-items: center;
@@ -834,30 +827,6 @@ button.metric:hover {
 .negative {
   color: #af4e39;
 }
-.overview-metrics .metric:first-child {
-  background: #fff;
-}
-.overview-main-grid,
-.overview-bottom-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.7fr) minmax(300px, 1fr);
-  gap: 22px;
-  margin-bottom: 24px;
-}
-
-.chart-keys {
-  display: flex;
-  justify-content: flex-end;
-  gap: 18px;
-  padding: 0 24px 8px;
-  font-size: 10px;
-  color: var(--muted);
-}
-.chart-keys span {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 .purple-dot,
 .mint-dot {
   display: inline-block;
@@ -873,122 +842,6 @@ button.metric:hover {
   overflow: clip;
   height: 235px;
   padding: 0 20px 0 12px;
-}
-.sales-summary {
-  padding: 17px 24px;
-  border-top: 1px solid #efefef;
-  display: flex;
-  gap: 24px;
-  font-size: 11px;
-  color: var(--muted);
-}
-.sales-summary strong {
-  color: var(--ink);
-  margin-right: 3px;
-}
-.decision-inbox {
-  display: flex;
-  flex-direction: column;
-}
-.decision-inbox .card-heading {
-  padding-bottom: 16px;
-}
-.decision-inbox h2 {
-  font-size: 14px;
-}
-.inbox-count {
-  width: 27px;
-  height: 27px;
-  background: #f4ebd9;
-  border-radius: 50%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #8c6a2c;
-  font-size: 12px;
-}
-.decision-list {
-  flex: 1;
-}
-.decision-row {
-  display: flex;
-  width: 100%;
-  gap: 11px;
-  align-items: flex-start;
-  padding: 16px 22px;
-  border-top: 1px solid #efefef;
-  text-align: left;
-}
-.decision-row:hover {
-  background: #f9f9f9;
-}
-.decision-marker {
-  display: flex;
-  padding: 9px;
-  background: #f4f4f4;
-  border-radius: 8px;
-  color: #868686;
-}
-.decision-row > span:nth-child(2) {
-  flex: 1;
-  min-width: 0;
-}
-.decision-row strong {
-  display: block;
-  font-size: 12px;
-  line-height: 1.6;
-}
-.decision-row small {
-  display: block;
-  font-size: 10px;
-  line-height: 1.5;
-  color: var(--muted);
-  margin-top: 3px;
-}
-.decision-row b {
-  display: block;
-  font-size: 13px;
-  font-weight: 600;
-  margin-top: 7px;
-}
-.decision-row > svg {
-  align-self: center;
-  color: #949494;
-}
-.inbox-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  padding: 16px 24px;
-  border-top: 1px solid var(--line);
-  color: var(--accent);
-  font-size: 12px;
-  font-weight: 550;
-  text-align: left;
-}
-.inbox-footer:hover {
-  background: #f6f6f6;
-}
-.inbox-footer b {
-  display: inline-flex;
-  margin-left: 8px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: #efefef;
-}
-.inbox-clear {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  align-items: center;
-  justify-content: center;
-  padding: 38px 20px;
-  color: var(--muted);
-  font-size: 12px;
-}
-.inbox-clear svg {
-  color: var(--accent);
 }
 
 .toolbar {
@@ -1280,19 +1133,6 @@ tbody tr:hover {
 }
 .store-table td {
   white-space: nowrap;
-}
-.overview-bottom-grid .store-table th:nth-child(4),
-.overview-bottom-grid .store-table td:nth-child(4) {
-  display: none;
-}
-.overview-bottom-grid .store-table td,
-.overview-bottom-grid .store-table th {
-  padding-left: 12px;
-  padding-right: 12px;
-}
-.overview-bottom-grid .store-table td:first-child,
-.overview-bottom-grid .store-table th:first-child {
-  padding-left: 24px;
 }
 .requests-table td:last-child > button {
   width: auto;
@@ -2337,14 +2177,6 @@ tbody tr:hover {
     width: 280px;
     margin-right: auto;
   }
-  .overview-filterbar {
-    flex-wrap: wrap;
-  }
-  .overview-main-grid,
-  .overview-bottom-grid {
-    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
-    gap: 18px;
-  }
   .metric.card {
     padding: 22px 18px;
   }
@@ -2356,9 +2188,6 @@ tbody tr:hover {
   }
   .metric-value {
     font-size: 25px;
-  }
-  .overview-bottom-grid {
-    grid-template-columns: 1fr;
   }
 
   .finance-layout {
@@ -2379,34 +2208,9 @@ tbody tr:hover {
   .card-heading:has(.table-controls) {
     flex-wrap: wrap;
   }
-  .overview-main-grid .card-heading {
-    padding: 20px;
-  }
-  .decision-row {
-    padding: 14px 20px;
-  }
-  .decision-marker {
-    display: none;
-  }
-  .overview-main-grid .card-heading h2 {
-    font-size: 13px;
-  }
-  .chart-keys {
-    padding: 0 20px 12px;
-    justify-content: flex-start;
-  }
-  .chart-card .card-heading {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
   .revenue-chart {
     height: 252px;
     padding-right: 10px;
-  }
-  .sales-summary {
-    flex-wrap: wrap;
-    gap: 9px;
-    padding: 15px 20px;
   }
   .space-field,
   .setting-select-row {
@@ -2508,9 +2312,6 @@ tbody tr:hover {
   .toast {
     bottom: calc(86px + env(safe-area-inset-bottom));
   }
-  .overview-main-grid {
-    grid-template-columns: minmax(0, 1.3fr) minmax(260px, 1fr);
-  }
 }
 @media (max-width: 620px) {
   .request-totals {
@@ -2590,13 +2391,6 @@ tbody tr:hover {
     padding: 10px 13px;
     font-size: 11px;
   }
-  .overview-workspace > .page-heading > button {
-    display: none;
-  }
-  .overview-filterbar {
-    margin-bottom: 19px;
-    gap: 12px;
-  }
 
   .filters {
     width: 100%;
@@ -2662,33 +2456,9 @@ tbody tr:hover {
     margin: 0;
     font-size: 10px;
   }
-  .overview-main-grid,
-  .overview-bottom-grid,
-  .overview-side,
   .finance-side {
     grid-template-columns: 1fr;
     gap: 20px;
-  }
-  .decision-inbox {
-    grid-row: 1;
-  }
-  .decision-marker {
-    display: flex;
-  }
-  .decision-inbox .card-heading h2 {
-    font-size: 14px;
-  }
-  .decision-row {
-    padding: 16px 18px;
-  }
-  .decision-row strong {
-    font-size: 12px;
-  }
-  .decision-row small {
-    font-size: 10px;
-  }
-  .decision-row b {
-    font-size: 13px;
   }
   .card-heading {
     padding: 19px 18px;
@@ -2705,10 +2475,6 @@ tbody tr:hover {
   }
   .revenue-chart {
     height: 230px;
-  }
-  .sales-summary {
-    font-size: 10px;
-    justify-content: space-between;
   }
   .card-heading:has(.table-controls) {
     display: grid;
@@ -2810,15 +2576,6 @@ tbody tr:hover {
   }
   .store-avatar {
     display: none;
-  }
-  .overview-bottom-grid .store-table td,
-  .overview-bottom-grid .store-table th {
-    padding-left: 7px;
-    padding-right: 7px;
-  }
-  .overview-bottom-grid .store-table td:first-child,
-  .overview-bottom-grid .store-table th:first-child {
-    padding-left: 14px;
   }
   .store-table .icon-button {
     width: 23px;
@@ -3155,18 +2912,8 @@ tbody tr:hover {
     scroll-behavior: auto !important;
   }
 }
-
-.overview-bottom-grid {
-  grid-template-columns: 1fr;
-}
-.overview-filterbar {
-  justify-content: flex-start;
-}
 main {
   padding-top: 34px;
-}
-.overview-main-grid {
-  margin-top: 8px;
 }
 .assistant-welcome {
   padding-top: 28px;

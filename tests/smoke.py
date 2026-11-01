@@ -16,19 +16,19 @@ with sync_playwright() as p:
     page.on('pageerror', lambda error: errors.append(str(error)))
     page.goto(BASE_URL, wait_until='networkidle')
     expect(page.get_by_role('heading', name='Обзор сети', exact=True)).to_be_visible()
-    initial_revenue = page.locator('.metric-value').first.inner_text()
+    initial_revenue = page.locator('.dashboard-kpi-value').first.inner_text()
     page.get_by_label('Магазин', exact=True).select_option('s1')
-    assert page.locator('.metric-value').first.inner_text() != initial_revenue
-    assert page.locator('.store-table tbody tr').count() == 1
+    assert page.locator('.dashboard-kpi-value').first.inner_text() != initial_revenue
+    assert page.locator('.dashboard-store-table tbody tr').count() == 1
     page.get_by_label('Период', exact=True).select_option('week')
-    expect(page.locator('.chart-card .badge')).to_have_text('25–31 октября')
+    expect(page.locator('.dashboard-trend .dashboard-panel-heading p')).to_contain_text('25–31 октября')
     page.get_by_label('Магазин', exact=True).select_option('all')
     page.get_by_label('Период', exact=True).select_option('month')
     page.screenshot(path=str(ARTIFACTS / 'overview-desktop.png'), full_page=True)
     print('PASS: dashboard filters and charts')
 
     with page.expect_download() as download:
-        page.get_by_role('button', name='Скачать отчёт CSV').click()
+        page.get_by_role('button', name='Скачать отчёт', exact=True).click()
     exported = download.value
     exported.save_as(str(ARTIFACTS / exported.suggested_filename))
     assert 'ДЕМО-ДАННЫЕ' in Path(exported.path()).read_text(encoding='utf-8-sig')

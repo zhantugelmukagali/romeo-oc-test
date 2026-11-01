@@ -34,15 +34,15 @@ with sync_playwright() as p:
 
     page = browser.new_page(viewport={'width': 1440, 'height': 960}, reduced_motion='reduce')
     page.goto(URL, wait_until='networkidle')
-    expect(page.locator('.overview-metrics .metric')).to_have_count(3)
-    row = page.locator('.decision-row').first
+    expect(page.locator('.dashboard-kpi')).to_have_count(3)
+    row = page.locator('.dashboard-queue-row').first
     title = row.locator('strong').inner_text()
     row.click()
     expect(page.get_by_role('dialog')).to_contain_text(title)
     page.get_by_role('button', name='Согласовать расход', exact=True).click()
-    expect(page.locator('.decision-row')).to_have_count(2)
+    expect(page.locator('.dashboard-queue-row')).to_have_count(2)
     page.get_by_role('button', name='Отменить действие', exact=True).click()
-    expect(page.locator('.decision-row')).to_have_count(3)
+    expect(page.locator('.dashboard-queue-row')).to_have_count(3)
     page.get_by_role('button', name='Создать', exact=True).click()
     page.locator('.create-popover').get_by_role('button', name=re.compile('Заявку на расход')).click()
     dialog = page.get_by_role('dialog')

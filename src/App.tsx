@@ -80,6 +80,7 @@ import {
   Modal,
   RevenueChart,
 } from "./ui";
+import Dashboard from "./Dashboard";
 import SettingsPage, {
   CompanyAvatar,
   defaultPreferences,
@@ -188,10 +189,6 @@ export default function App() {
   const ids = useMemo(() => scopeStores(role, storeId), [role, storeId]);
   const rows = useMemo(() => selectedDays(ids, period), [ids, period]);
   const total = useMemo(() => summarize(rows), [rows]);
-  const previous = useMemo(
-    () => summarize(selectedDays(ids, period, true)),
-    [ids, period],
-  );
   const cash = useMemo(() => cashflow(ids, period), [ids, period]);
   const scopeRequests = requests.filter((r) => ids.includes(r.storeId));
   const filteredRequests = scopeRequests.filter(
@@ -972,180 +969,31 @@ export default function App() {
         </nav>
         <main>
           {activePage === "overview" && (
-            <div className="overview-workspace">
-              <div className="page-heading">
-                <div>
-                  <h1>
-                    {role === "manager" ? "Ваш магазин в цифрах" : "Обзор сети"}
-                  </h1>
-                </div>
-                <button
-                  className="secondary-button"
-                  onClick={() => openFinance("pnl")}
-                >
-                  Финансовый отчёт <ArrowUpRight size={16} />
-                </button>
-              </div>
-              <div className="overview-filterbar">
-                <Filters
-                  role={role}
-                  storeId={storeId}
-                  setStoreId={changeStore}
-                  period={period}
-                  setPeriod={changePeriod}
-                  onReset={resetFilters}
-                  onExport={exportReport}
-                />
-              </div>
-              <div className="metrics-grid three overview-metrics">
-                <Metric
-                  title="Выручка"
-                  value={compactMoney(total.revenue)}
-                  change={
-                    period === "quarter"
-                      ? null
-                      : percentChange(total.revenue, previous.revenue)
-                  }
-                  subtitle={
-                    period === "quarter"
-                      ? "за выбранный период"
-                      : period === "month"
-                        ? "к сентябрю"
-                        : "к прошлому периоду"
-                  }
-                  icon={<ArrowUpRight size={18} />}
-                  onClick={() => openFinance("pnl")}
-                />
-                <Metric
-                  title="Управленческая прибыль"
-                  value={compactMoney(total.profit)}
-                  subtitle="до налогов и общесетевых расходов"
-                  icon={<ArrowUpRight size={18} />}
-                  onClick={() => openFinance("pnl")}
-                />
-                <Metric
-                  title="Деньги на счетах и в кассах"
-                  value={compactMoney(cash.closing)}
-                  subtitle="на конец выбранного периода"
-                  icon={<ArrowUpRight size={18} />}
-                  onClick={() => openFinance("cash")}
-                />
-              </div>
-              <div className="overview-main-grid">
-                <section className="card chart-card">
-                  <div className="card-heading">
-                    <div>
-                      <h2>Продажи и прибыль</h2>
-                      <p>Динамика по дням, ₸</p>
-                    </div>
-                    <Badge>{periodLabels[period]}</Badge>
-                  </div>
-                  <div className="chart-keys">
-                    <span>
-                      <i className="purple-dot" />
-                      Выручка
-                    </span>
-                    <span>
-                      <i className="mint-dot" />
-                      Прибыль до налогов
-                    </span>
-                  </div>
-                  <RevenueChart rows={rows} />
-                  <div className="sales-summary">
-                    <span>
-                      <strong>{number(total.orders)}</strong> заказов
-                    </span>
-                    <span>
-                      <strong>{money(total.average)}</strong> средний чек
-                    </span>
-                  </div>
-                </section>
-                <section
-                  className="card decision-inbox"
-                  aria-label="Что требует внимания"
-                >
-                  <div className="card-heading">
-                    <div>
-                      <h2>
-                        {canApprove(role)
-                          ? "Ожидают вашего решения"
-                          : "Заявки на согласовании"}
-                      </h2>
-                      <p>
-                        {pending.length
-                          ? money(
-                              pending.reduce((sum, r) => sum + r.amount, 0),
-                            ) + " в заявках"
-                          : "Все заявки рассмотрены"}
-                      </p>
-                    </div>
-                    <span className="inbox-count">{pending.length}</span>
-                  </div>
-                  <div className="decision-list">
-                    {pending.slice(0, 3).map((r) => (
-                      <button
-                        key={r.id}
-                        className="decision-row"
-                        onClick={() => setModal("request:" + r.id)}
-                      >
-                        <span className="decision-marker">
-                          <Wallet size={17} />
-                        </span>
-                        <span>
-                          <strong>{r.title}</strong>
-                          <small>
-                            {stores.find((s) => s.id === r.storeId)?.name} ·{" "}
-                            {r.author}
-                          </small>
-                          <b>{money(r.amount)}</b>
-                        </span>
-                        <ChevronRight size={17} />
-                      </button>
-                    ))}
-                    {!pending.length && (
-                      <div className="inbox-clear">
-                        <CircleCheck size={25} />
-                        <strong>Всё рассмотрено</strong>
-                        <span>Новые заявки появятся здесь</span>
-                      </div>
-                    )}
-                  </div>
-                  <button
-                    className="inbox-footer"
-                    onClick={() => {
-                      setRequestFilter("pending");
-                      setRequestQuery("");
-                      openFinance("requests");
-                    }}
-                  >
-                    Все заявки <ArrowRight size={16} />
-                  </button>
-                </section>
-              </div>
-              <div className="overview-bottom-grid">
-                <section className="card stores-card">
-                  <div className="card-heading">
-                    <div>
-                      <h2>Результаты магазинов</h2>
-                      <p>
-                        {ids.length} магазинов ·{" "}
-                        {periodLabels[period].toLowerCase()}
-                      </p>
-                    </div>
-                    <button
-                      className="text-button"
-                      onClick={() => navigate("stores")}
-                    >
-                      Все магазины <ArrowRight size={16} />
-                    </button>
-                  </div>
-                  {storeTable(true)}
-                  <div className="table-footnote">
-                    Прибыль до налогов и общесетевых расходов.
-                  </div>
-                </section>
-              </div>
-            </div>
+            <Dashboard
+              role={role}
+              storeId={storeId}
+              ids={ids}
+              period={period}
+              pending={pending}
+              tasks={scopeTasks}
+              onStoreChange={changeStore}
+              onPeriodChange={changePeriod}
+              onReset={resetFilters}
+              onExport={exportReport}
+              onFinance={openFinance}
+              onRequest={(id) => setModal("request:" + id)}
+              onStore={(id) => setModal("store:" + id)}
+              onTask={(task) => {
+                setTaskQuery(task?.title ?? "");
+                setTaskFilter("all");
+                navigate("tasks");
+              }}
+              onRequests={() => {
+                setRequestFilter("pending");
+                setRequestQuery("");
+                openFinance("requests");
+              }}
+            />
           )}
 
           {activePage === "finance" && (
